@@ -29,8 +29,9 @@ export const RULES = {
   grenade: { id: 'pulse_grenade', radius: 3.5, fuse: 0 },
 
   tag: {
-    // Out for this long after a tag: can't fire, slowed, then back at a spawn pad.
-    down: 4,
+    // Stunned for this long after a tag: can't move or fire, a sign above the head,
+    // then back at a spawn pad.
+    down: 10,
     // Can't be tagged for this long after coming back.
     protect: 3,
     // Two or more tags within this many seconds make a double, triple … tag.

@@ -83,7 +83,7 @@ export function buildBot(c) {
         },
         'minecraft:fire_immune': {},
         'minecraft:breathable': { breathes_water: true, total_supply: 15, suffocate_time: 0 },
-        'minecraft:nameable': {},
+        'minecraft:nameable': { always_show: true },
         'minecraft:persistent': {},
         'minecraft:physics': {},
         'minecraft:jump.static': {},

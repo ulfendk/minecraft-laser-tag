@@ -11,7 +11,7 @@ import { padsOf } from './arena.js';
 import { counts, joinTeam } from './bots.js';
 import { current, givePowerup, isDown, isProtected, startGame, stopGame, tag } from './game.js';
 import { fireRay, pulse } from './guns.js';
-import { BOT, dist, DOWN_TAG, GAME_BOT_TAG, LOG, norm, NS, sub } from './util.js';
+import { BOT, dist, DOWN_TAG, GAME_BOT_TAG, LOG, nameOf, norm, NS, SIGN, sub } from './util.js';
 
 const later = (ticks) => new Promise((resolve) => system.runTimeout(resolve, ticks));
 const Y = -60; // the first block above a flat world's grass
@@ -80,9 +80,12 @@ async function selfTest() {
 
   check(fireRay(red, red.getHeadLocation(), aim(red, blue), 20) === 'tagged', 'a laser did not tag a bot of another team');
   check(isDown(blue) && blue.hasTag(DOWN_TAG), 'the tagged bot is not out');
+  await later(4);
+  check(blue.nameTag.startsWith(SIGN) && nameOf(blue) === 'Test blue', `the tagged bot has no sign above its head (${JSON.stringify(blue.nameTag)})`);
   check(!tag(red, red2), 'a bot tagged its own team');
   await later(DOWN + 10);
   check(!isDown(blue) && !blue.hasTag(DOWN_TAG), 'the tagged bot did not come back');
+  check(blue.nameTag === 'Test blue', `the sign stayed above the bot's head (${JSON.stringify(blue.nameTag)})`);
   check(dist(blue.location, { x: 30.5, y: Y + 1, z: 2.5 }) < 1.5, `the tagged bot did not come back on its spawn pad (${JSON.stringify(blue.location)})`);
   check(isProtected(blue) && !tag(red, blue), 'a bot just back could be tagged');
   await later(PROTECT + 5);
@@ -123,7 +126,7 @@ async function selfTest() {
   gameBots[0].teleport({ x: 12.5, y: Y, z: 4.5 });
   gameBots[1].teleport({ x: 22.5, y: Y, z: 4.5 });
   for (const b of gameBots) b.triggerEvent(`${NS}:up`);
-  const shots = () => gameBots.reduce((n, b) => n + (current()?.stats[b.nameTag]?.shots ?? 0), 0);
+  const shots = () => gameBots.reduce((n, b) => n + (current()?.stats[nameOf(b)]?.shots ?? 0), 0);
   check(await until(() => shots() > 0, 600), 'the game\'s bots never fired');
   console.log(`${LOG} selftest: the bots fired ${shots()} shots (the AI shot ${counts.shots} times, ${counts.fired} fired), scores ${JSON.stringify(current()?.scores)}`);
   check(stopGame() && current()?.phase === 'over', 'the game did not stop');
@@ -136,7 +139,7 @@ async function selfTest() {
   const flagShown = (x) => dim.getBlock({ x, y: Y, z: 10 }).permutation.getState(`${NS}:flag`);
   red.teleport({ x: 30.5, y: Y + 1, z: 10.5 });
   await until(() => current().flags.blue.state === 'carried', 40);
-  check(current().flags.blue.state === 'carried' && current().flags.blue.carrier === red.nameTag, `red did not take the blue flag (${JSON.stringify(current().flags.blue)})`);
+  check(current().flags.blue.state === 'carried' && current().flags.blue.carrier === nameOf(red), `red did not take the blue flag (${JSON.stringify(current().flags.blue)})`);
   await later(10);
   check(flagShown(30) === false, 'the blue flag is still on its stand');
   // Tagged while carrying it: the flag drops, and blue sends it home by touching it.

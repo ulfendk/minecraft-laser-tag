@@ -2,7 +2,7 @@
 // round (src/lib/game.mjs, copied here as logic.js) with its countdown, scores on
 // the sidebar, the HUD above the hotbar, and the end with fireworks and stats.
 // The same as dk.ulfen.lasertag.game.Game on Java.
-import { DisplaySlotId, system, world } from '@minecraft/server';
+import { DisplaySlotId, InputPermissionCategory, system, world } from '@minecraft/server';
 import { RULES } from './data.js';
 import {
   accuracy, carrying, clockText, cool, enemies, heatBar, mvp, newGame, onShot, onTag, second, standings, stop, teamMode, touchDropped,
@@ -10,7 +10,7 @@ import {
 import { padsOf, pointCounts, resetArena, showFlag } from './arena.js';
 import { spawnGameBots, removeGameBots } from './bots.js';
 import {
-  announce, BOT, colour, coloured, DOWN_TAG, isBot, isPlayer, LOG, nameOf, NS, now, sound, teamOf, TEAMS, title, tr,
+  announce, BOT, colour, coloured, DOWN_TAG, isBot, isPlayer, LOG, nameOf, NS, now, plainName, SIGN, sound, teamOf, TEAMS, title, tr,
 } from './util.js';
 
 const SAVE = `${NS}:game`;
@@ -106,20 +106,19 @@ function sparks(entity, team) {
   } catch {}
 }
 
-/** Out for a few seconds: can't fire, slowed; then back at a spawn pad. */
+/** Stunned for a while: can't move or fire, with a sign above the head; then back at a spawn pad. */
 function goDown(entity, by) {
   downUntil.set(entity.id, now() + RULES.tag.down * 20);
   try {
     entity.addTag(DOWN_TAG);
   } catch {}
   sound(entity, 'beacon.deactivate', 1.4);
+  showSign(entity, RULES.tag.down);
   if (isBot(entity)) {
     entity.triggerEvent(`${NS}:down`);
     return;
   }
-  try {
-    entity.addEffect('slowness', RULES.tag.down * 20, { amplifier: 2, showParticles: false });
-  } catch {}
+  stun(entity, true);
   title(entity, { rawtext: [{ text: '§c' }, { translate: `${NS}.title.tagged` }] }, tr('title.by', by ? coloured(by, teamOf(by)) : '?'), RULES.tag.down * 20 - 10);
 }
 
@@ -127,14 +126,47 @@ function goDown(entity, by) {
 function comeBack(entity) {
   downUntil.delete(entity.id);
   if (!entity.isValid) return;
-  try {
-    entity.removeTag(DOWN_TAG);
-  } catch {}
+  wakeUp(entity);
   // Bots held still (the selftest's targets) stay held.
   if (isBot(entity)) entity.triggerEvent(entity.hasTag(`${NS}_hold`) ? `${NS}:hold` : `${NS}:up`);
   respawn(entity);
   protectUntil.set(entity.id, now() + RULES.tag.protect * 20);
   sound(entity, 'beacon.activate', 1.6);
+}
+
+/** No longer tagged: no sign, free to move. */
+function wakeUp(entity) {
+  try {
+    entity.removeTag(DOWN_TAG);
+  } catch {}
+  hideSign(entity);
+  if (isPlayer(entity)) stun(entity, false);
+}
+
+/** A player that can't walk, jump or sneak (the slowness is for clients that ignore it). */
+function stun(player, on) {
+  try {
+    player.inputPermissions.setPermissionCategory(InputPermissionCategory.Movement, !on);
+  } catch {}
+  try {
+    if (on) player.addEffect('slowness', RULES.tag.down * 20, { amplifier: 255, showParticles: false });
+    else player.removeEffect('slowness');
+  } catch {}
+}
+
+/** The sign above a tagged head: a first line on its name tag, counting down. */
+function showSign(entity, seconds) {
+  try {
+    const text = `${SIGN}>> TAGGED ${seconds} <<§r\n${plainName(entity.nameTag ?? '')}`;
+    if (entity.nameTag !== text) entity.nameTag = text;
+  } catch {}
+}
+
+function hideSign(entity) {
+  try {
+    const name = plainName(entity.nameTag ?? '');
+    if (entity.nameTag !== name) entity.nameTag = name;
+  } catch {}
 }
 
 /** Send `entity` to one of its team's spawn pads (in its dimension). */
@@ -193,12 +225,12 @@ export function startGame(settings, at, starter) {
   game = newGame(settings);
   game.origin = { dim: at.dimension.id, x: at.location.x, y: at.location.y, z: at.location.z };
   clearAt = 0;
-  for (const map of [downUntil, protectUntil, powerups, heat]) map.clear();
-  for (const p of world.getAllPlayers()) {
-    try {
-      p.removeTag(DOWN_TAG);
-    } catch {}
+  for (const id of downUntil.keys()) {
+    const entity = world.getEntity(id);
+    if (entity?.isValid) wakeUp(entity);
   }
+  for (const map of [downUntil, protectUntil, powerups, heat]) map.clear();
+  for (const p of world.getAllPlayers()) wakeUp(p);
   setupScoreboard();
   resetArena();
   removeGameBots(at.dimension);
@@ -436,10 +468,14 @@ function droppedFlags() {
 function everyTick() {
   const t = now();
   for (const [id, until] of downUntil) {
-    if (until > t) continue;
     const entity = world.getEntity(id);
-    if (entity) comeBack(entity);
-    else downUntil.delete(id);
+    if (!entity) downUntil.delete(id);
+    else if (until <= t) comeBack(entity);
+    else {
+      showSign(entity, Math.ceil((until - t) / 20));
+      // Sparks fly off a tagged vest twice a second.
+      if ((until - t) % 10 < 2) sparks(entity, teamOf(entity));
+    }
   }
   for (const [id, h] of heat) {
     if (h.heat <= 0 && !h.overheated) heat.delete(id);
@@ -457,14 +493,10 @@ function load() {
   }
   if (!game) clearScoreboard();
   // Nobody stays down across a restart.
-  for (const p of world.getAllPlayers()) {
-    try {
-      p.removeTag(DOWN_TAG);
-    } catch {}
-  }
+  for (const p of world.getAllPlayers()) wakeUp(p);
   for (const dim of ['overworld', 'nether', 'the_end']) {
     for (const bot of world.getDimension(dim).getEntities({ type: BOT, tags: [DOWN_TAG] })) {
-      bot.removeTag(DOWN_TAG);
+      wakeUp(bot);
       bot.triggerEvent(`${NS}:up`);
     }
   }
@@ -487,6 +519,10 @@ export function setupGame() {
       } catch {}
     }
   }, 10);
+  // Left while tagged: free to move when you are back.
+  world.afterEvents.playerSpawn.subscribe(({ player, initialSpawn }) => {
+    if (initialSpawn && !isDown(player)) wakeUp(player);
+  });
   // Left in a hurry: drop what you carry.
   world.afterEvents.playerLeave.subscribe(({ playerName }) => {
     if (running()) handle(dropFlagsOf(playerName));

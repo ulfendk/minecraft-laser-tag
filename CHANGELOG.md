@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.0] - 2026-11-21
+
+### Changed
+- A tag is now much easier to see: the tagged player or bot is stunned for 10 seconds (up from 4), frozen to the spot, with a red TAGGED sign above its head that counts down and sparks flying off the vest. On Java the tagged one also glows through walls.
+- Laser bots on Bedrock always show their name above their head.
+
 ## [0.1.0] - 2026-11-21
 
 ### Added

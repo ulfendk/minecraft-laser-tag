@@ -52,8 +52,15 @@ done
 
 send() { docker exec -u 0 "$NAME" send-command "$@"; }
 send tickingarea add circle 0 0 0 4 lasertag_test true
-sleep 5
-send summon lasertag:laser_bot 40 -60 40
+# The ticking area can take a while to load: summon until it works.
+for i in $(seq 1 30); do
+  sleep 5
+  before=$(docker logs "$NAME" 2>&1 | grep -c "Unable to summon" || true)
+  send summon lasertag:laser_bot 40 -60 40
+  sleep 2
+  after=$(docker logs "$NAME" 2>&1 | grep -c "Unable to summon" || true)
+  [ "$before" = "$after" ] && break
+done
 sleep 10
 send scriptevent lasertag:selftest
 # The selftest plays several games, each with a countdown, and waits for tagged bots to
@@ -72,7 +79,7 @@ fi
 if ! echo "$LOG" | grep -q "selftest PASS"; then
   echo "FAIL: the selftest did not pass"; exit 1
 fi
-if echo "$LOG" | grep -E "ERROR|\[error\]|Error\]" | grep -viE "Failed to connect|network|telemetry" | grep -q .; then
+if echo "$LOG" | grep -E "ERROR|\[error\]|Error\]" | grep -viE "Failed to connect|network|telemetry|Unable to summon" | grep -q .; then
   echo "FAIL: content log has errors"; exit 1
 fi
 echo "PASS: Bedrock Dedicated Server loaded the packs without errors"

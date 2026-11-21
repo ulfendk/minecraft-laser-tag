@@ -67,10 +67,14 @@ export function teamOf(entity) {
   return undefined;
 }
 
+/** The first line of a tagged player's or bot's name tag is the sign above its head. */
+export const SIGN = '§c§l';
+export const plainName = (nameTag) => (nameTag.startsWith(SIGN) ? nameTag.slice(nameTag.indexOf('\n') + 1) : nameTag);
+
 /** How a player or bot is named in scores and messages. */
 export function nameOf(entity) {
   if (isPlayer(entity)) return entity.name;
-  return entity.nameTag || `Bot ${entity.id}`;
+  return plainName(entity.nameTag ?? '') || `Bot ${entity.id}`;
 }
 
 /** The colour code of a team's chat text. */

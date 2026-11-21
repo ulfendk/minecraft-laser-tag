@@ -14,6 +14,8 @@ import dk.ulfen.lasertag.LaserRegistry;
 import dk.ulfen.lasertag.entity.LaserBot;
 import dk.ulfen.lasertag.item.VestItem;
 import it.unimi.dsi.fastutil.ints.IntList;
+import com.mojang.math.Transformation;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -36,10 +38,14 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.FireworkRocketEntity;
 import net.minecraft.world.item.ItemStack;
@@ -54,6 +60,7 @@ import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.ScoreHolder;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.scores.criteria.ObjectiveCriteria;
+import org.joml.Vector3f;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -63,6 +70,8 @@ import org.jspecify.annotations.Nullable;
  */
 public final class Game {
 	public static final String DOWN_TAG = "lasertag_down";
+	public static final String SIGN_TAG = "lasertag_sign";
+	private static final Map<UUID, Display.TextDisplay> SIGNS = new HashMap<>();
 	public static final String GAME_BOT_TAG = "lasertag_game_bot";
 	private static final String OBJECTIVE = "lasertag";
 	private static final Gson GSON = new Gson();
@@ -216,27 +225,79 @@ public final class Game {
 		return "tagged";
 	}
 
+	/** Stunned for a while: can't move or fire, with a sign above the head; then back at a spawn pad. */
 	private static void goDown(Entity e, Entity by) {
-		DOWN_UNTIL.put(e.getUUID(), now() + Math.round(R().tag().down() * 20));
+		int ticks = Math.round(R().tag().down() * 20);
+		DOWN_UNTIL.put(e.getUUID(), now() + ticks);
 		e.addTag(DOWN_TAG);
 		sound(e, SoundEvents.BEACON_DEACTIVATE, 1.4F);
+		showSign(e, ticks);
+		if (e instanceof LivingEntity living) living.addEffect(new MobEffectInstance(MobEffects.GLOWING, ticks, 0, false, false));
 		if (e instanceof LaserBot bot) {
 			bot.setDown(true);
 			return;
 		}
 		if (e instanceof ServerPlayer p) {
-			p.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, Math.round(R().tag().down() * 20), 2, false, false));
-			title(p, Component.translatable("lasertag.title.tagged").withStyle(ChatFormatting.RED), Component.translatable("lasertag.title.by", coloured(by)), Math.round(R().tag().down() * 20) - 10);
+			stun(p, true);
+			title(p, Component.translatable("lasertag.title.tagged").withStyle(ChatFormatting.RED), Component.translatable("lasertag.title.by", coloured(by)), ticks - 10);
 		}
 	}
 
 	private static void comeBack(Entity e) {
 		DOWN_UNTIL.remove(e.getUUID());
-		e.removeTag(DOWN_TAG);
+		wakeUp(e);
 		if (e instanceof LaserBot bot) bot.setDown(false);
 		respawn(e);
 		PROTECT_UNTIL.put(e.getUUID(), now() + Math.round(R().tag().protect() * 20));
 		sound(e, SoundEvents.BEACON_ACTIVATE, 1.6F);
+	}
+
+	/** No longer tagged: no sign, free to move. */
+	private static void wakeUp(Entity e) {
+		e.removeTag(DOWN_TAG);
+		hideSign(e.getUUID());
+		if (e instanceof LivingEntity living) living.removeEffect(MobEffects.GLOWING);
+		if (e instanceof ServerPlayer p) stun(p, false);
+	}
+
+	/** A player that can't walk or jump. The modifiers are transient: gone after a restart. */
+	private static void stun(ServerPlayer p, boolean on) {
+		Identifier id = LaserRegistry.id("stun");
+		for (var attribute : List.of(Attributes.MOVEMENT_SPEED, Attributes.JUMP_STRENGTH)) {
+			var instance = p.getAttribute(attribute);
+			if (instance == null) continue;
+			if (on) instance.addOrUpdateTransientModifier(new AttributeModifier(id, -1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+			else instance.removeModifier(id);
+		}
+	}
+
+	/** The sign above a tagged head: a floating text that follows it and counts down. */
+	private static void showSign(Entity e, long ticksLeft) {
+		if (!(e.level() instanceof ServerLevel level)) return;
+		Display.TextDisplay sign = SIGNS.get(e.getUUID());
+		if (sign == null || sign.isRemoved()) {
+			sign = EntityTypes.TEXT_DISPLAY.create(level, EntitySpawnReason.TRIGGERED);
+			if (sign == null) return;
+			sign.addTag(SIGN_TAG);
+			sign.setBillboardConstraints(Display.BillboardConstraints.CENTER);
+			sign.setBackgroundColor(0xC0400000);
+			sign.setTransformation(new Transformation(null, null, new Vector3f(1.5F), null));
+			sign.snapTo(e.getX(), e.getY() + e.getBbHeight() + 0.7, e.getZ());
+			SIGNS.put(e.getUUID(), sign);
+			level.addFreshEntity(sign);
+		} else if (sign.distanceToSqr(e.getX(), e.getY() + e.getBbHeight() + 0.7, e.getZ()) > 0.01) {
+			sign.teleportTo(e.getX(), e.getY() + e.getBbHeight() + 0.7, e.getZ());
+		}
+		sign.setText(Component.translatable("lasertag.sign.tagged", String.valueOf((ticksLeft + 19) / 20)).withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
+	}
+
+	private static void hideSign(UUID id) {
+		Display.TextDisplay sign = SIGNS.remove(id);
+		if (sign != null) sign.discard();
+	}
+
+	public static Display.@Nullable TextDisplay signOf(Entity e) {
+		return SIGNS.get(e.getUUID());
 	}
 
 	/** Send `e` to one of its team's spawn pads. */
@@ -291,11 +352,15 @@ public final class Game {
 		game.y = pos.getY();
 		game.z = pos.getZ();
 		clearAt = 0;
+		for (UUID id : DOWN_UNTIL.keySet()) {
+			Entity e = findEntity(id);
+			if (e != null) wakeUp(e);
+		}
 		DOWN_UNTIL.clear();
 		PROTECT_UNTIL.clear();
 		POWERUPS.clear();
 		HEAT.clear();
-		for (ServerPlayer p : server.getPlayerList().getPlayers()) p.removeTag(DOWN_TAG);
+		for (ServerPlayer p : server.getPlayerList().getPlayers()) wakeUp(p);
 		setupScoreboard();
 		Arena.reset(server);
 		removeGameBots(level);
@@ -553,12 +618,17 @@ public final class Game {
 	private static void tick(MinecraftServer srv) {
 		server = srv;
 		long t = now();
-		List<UUID> due = new ArrayList<>();
-		for (var e : DOWN_UNTIL.entrySet()) if (e.getValue() <= t) due.add(e.getKey());
-		for (UUID id : due) {
-			Entity entity = findEntity(id);
-			if (entity != null) comeBack(entity);
-			else DOWN_UNTIL.remove(id);
+		for (var e : List.copyOf(DOWN_UNTIL.entrySet())) {
+			Entity entity = findEntity(e.getKey());
+			if (entity == null) {
+				DOWN_UNTIL.remove(e.getKey());
+				hideSign(e.getKey());
+			} else if (e.getValue() <= t) comeBack(entity);
+			else {
+				showSign(entity, e.getValue() - t);
+				// Sparks fly off a tagged vest twice a second.
+				if ((e.getValue() - t) % 10 == 0 && entity.level() instanceof ServerLevel level) Lasers.sparks(level, entity, teamOf(entity));
+			}
 		}
 		if (t % 2 == 0) {
 			for (var it = HEAT.entrySet().iterator(); it.hasNext();) {
@@ -627,7 +697,7 @@ public final class Game {
 		if (game == null) clearScoreboard();
 		for (ServerLevel level : srv.getAllLevels()) {
 			for (Entity e : level.getAllEntities()) if (e instanceof LaserBot bot && bot.entityTags().contains(DOWN_TAG)) {
-				bot.removeTag(DOWN_TAG);
+				wakeUp(bot);
 				bot.setDown(false);
 			}
 		}
@@ -635,10 +705,18 @@ public final class Game {
 
 	public static void register() {
 		ServerLifecycleEvents.SERVER_STARTED.register(Game::load);
+		ServerLifecycleEvents.SERVER_STOPPING.register(srv -> {
+			for (UUID id : List.copyOf(SIGNS.keySet())) hideSign(id);
+		});
+		// A sign left over from before a restart (or a crash) belongs to nobody.
+		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
+			if (entity.entityTags().contains(SIGN_TAG) && !SIGNS.containsValue(entity)) entity.discard();
+		});
 		ServerLifecycleEvents.SERVER_STOPPED.register(srv -> {
 			game = null;
 			server = null;
 			DOWN_UNTIL.clear();
+			SIGNS.clear();
 			PROTECT_UNTIL.clear();
 			POWERUPS.clear();
 			HEAT.clear();
@@ -663,6 +741,7 @@ public final class Game {
 		game = null;
 		clearAt = 0;
 		DOWN_UNTIL.clear();
+		for (UUID id : List.copyOf(SIGNS.keySet())) hideSign(id);
 		PROTECT_UNTIL.clear();
 		POWERUPS.clear();
 		HEAT.clear();

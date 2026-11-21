@@ -181,7 +181,7 @@ public class LaserTagGameTests {
 	 * deathmatch with bots that fire by themselves, capture the flag, king of the hill,
 	 * and a game that ends at its score limit and is cleared away.
 	 */
-	@GameTest(structure = AREA, maxTicks = 2200)
+	@GameTest(structure = AREA, maxTicks = 3400)
 	public void playsLaserTag(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		Game.reset(level.getServer());
@@ -207,9 +207,14 @@ public class LaserTagGameTests {
 			check(helper, Game.isDown(blue) && blue.isDown(), "the tagged bot is not out");
 			check(helper, Game.tag(red, red2) == null, "a bot tagged its own team");
 		});
+		helper.runAfterDelay(t + 4, () -> {
+			var sign = Game.signOf(blue);
+			check(helper, sign != null && sign.isAlive() && sign.getY() > blue.getY() + blue.getBbHeight() && !sign.getText().getString().isEmpty(), "the tagged bot has no sign above its head");
+		});
 		t += down + 10;
 		helper.runAfterDelay(t, () -> {
 			check(helper, !Game.isDown(blue) && !blue.isDown(), "the tagged bot did not come back");
+			check(helper, Game.signOf(blue) == null, "the sign stayed above the bot's head");
 			check(helper, blue.position().distanceTo(helper.absoluteVec(new Vec3(30.5, 2, 2.5))) < 1.5, "the tagged bot did not come back on its spawn pad: " + blue.position());
 			check(helper, Game.isProtected(blue) && Game.tag(red, blue) == null, "a bot just back could be tagged");
 		});

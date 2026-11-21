@@ -31,6 +31,7 @@ const GAME = {
   'hud.carrying': ['You have the %s flag – take it home!', 'Du har det %s flag – bring det hjem!'],
   'hud.capturing': ['Taking the control point: %s of %s', 'Tager kontrolpunktet: %s af %s'],
   'title.tagged': ['TAGGED', 'RAMT'],
+  'sign.tagged': ['>> TAGGED %s <<', '>> RAMT %s <<'],
   'title.by': ['by %s', 'af %s'],
   'title.ready': ['Get ready', 'Gør dig klar'],
   'title.go': ['GO!', 'START!'],
@@ -155,7 +156,7 @@ const en = {
     ['1. Build an arena', 'Put down a spawn pad for each team, some cover crates and neon panels – and a game console where everyone can reach it. Add flag stands, control points and power-up stations for the other modes.'],
     ['2. Pick a team', 'Everyone puts on a laser vest: red, blue, green or yellow. The vest is your team – and the target. Without a vest you can’t fire and can’t be tagged.'],
     ['3. Start the game', `Use the game console to pick the mode, the time, the score to win and how many laser bots join each team. Everyone within ${R.console.reach} blocks of it is in. A ${R.console.countdown}-second countdown, then GO!`],
-    ['4. Tag!', `Use a laser gun to fire. Hit a vest from another team and it is out for ${R.tag.down} seconds: it can’t fire, and then it comes back on its team’s spawn pad, safe for ${R.tag.protect} seconds. Nobody is ever hurt.`],
+    ['4. Tag!', `Use a laser gun to fire. Hit a vest from another team and it is stunned for ${R.tag.down} seconds: frozen to the spot with a big TAGGED sign above its head, it can’t fire, and then it comes back on its team’s spawn pad, safe for ${R.tag.protect} seconds. Nobody is ever hurt.`],
   ],
   modesTitle: 'Four game modes',
   modes: {
@@ -181,7 +182,7 @@ const en = {
   vestsTitle: 'Vests, tags and scores',
   vests: [
     ['Team vests', 'Four colours, crafted from leather, dye and redstone. They don’t protect you – they only show your team and light up when you are hit.'],
-    ['Out for a moment', `A tag puts the vest out for ${R.tag.down} seconds: you are slowed and can’t fire. Then you are sent to one of your team’s spawn pads and can’t be tagged for ${R.tag.protect} seconds.`],
+    ['Out for a moment', `A tag stuns you for ${R.tag.down} seconds: you are frozen to the spot, can’t fire, and a TAGGED sign over your head counts down so everyone can see you are out. Then you are sent to one of your team’s spawn pads and can’t be tagged for ${R.tag.protect} seconds.`],
     ['Streaks and multi-tags', 'Tag three in a row without being tagged and everyone hears you are on a roll – five is unstoppable, eight is legendary. Two tags within three seconds is a double tag.'],
     ['Scores and stats', 'Scores are on the screen all game, the time and your heat above your hotbar. At the end: the winner, fireworks, and everyone’s tags, accuracy and captures – and the MVP.'],
   ],
@@ -257,7 +258,7 @@ const da = {
     ['1. Byg en arena', 'Sæt en startplade ned til hvert hold, nogle dækningskasser og neonpaneler – og en spilkonsol, som alle kan nå. Til de andre spiltyper skal der flagstandere, kontrolpunkter og powerup-stationer til.'],
     ['2. Vælg et hold', 'Alle tager en laservest på: rød, blå, grøn eller gul. Vesten er dit hold – og det, der skal rammes. Uden vest kan du hverken skyde eller blive ramt.'],
     ['3. Start spillet', `Brug spilkonsollen til at vælge spiltype, tid, point for at vinde og hvor mange laserrobotter, der skal være på hvert hold. Alle inden for ${R.console.reach} blokke er med. ${R.console.countdown} sekunders nedtælling, og så START!`],
-    ['4. Skyd!', `Brug et lasergevær for at skyde. Rammer du en vest fra et andet hold, er den ude i ${R.tag.down} sekunder: Den kan ikke skyde, og så kommer den tilbage på sit holds startplade, hvor den ikke kan rammes de første ${R.tag.protect} sekunder. Ingen kommer nogensinde til skade.`],
+    ['4. Skyd!', `Brug et lasergevær for at skyde. Rammer du en vest fra et andet hold, er den lammet i ${R.tag.down} sekunder: Den står frosset fast med et stort skilt over hovedet og kan ikke skyde, og så kommer den tilbage på sit holds startplade, hvor den ikke kan rammes de første ${R.tag.protect} sekunder. Ingen kommer nogensinde til skade.`],
   ],
   modesTitle: 'Fire spiltyper',
   modes: {
@@ -283,7 +284,7 @@ const da = {
   vestsTitle: 'Veste, træffere og point',
   vests: [
     ['Holdveste', 'Fire farver, lavet af læder, farvestof og rødsten. De beskytter dig ikke – de viser bare dit hold og lyser op, når du bliver ramt.'],
-    ['Ude et øjeblik', `Et skud, der rammer, slår vesten fra i ${R.tag.down} sekunder: Du bliver langsom og kan ikke skyde. Så bliver du sendt til en af dit holds startplader og kan ikke rammes i ${R.tag.protect} sekunder.`],
+    ['Ude et øjeblik', `Et skud, der rammer, lammer dig i ${R.tag.down} sekunder: Du står frosset fast, kan ikke skyde, og et skilt over hovedet tæller ned, så alle kan se, at du er ude. Så bliver du sendt til en af dit holds startplader og kan ikke rammes i ${R.tag.protect} sekunder.`],
     ['Stime og dobbeltskud', 'Ram tre i træk uden selv at blive ramt, så hører alle, at du kører derudad – fem er ustoppelig, otte er legendarisk. To træffere inden for tre sekunder er dobbelt.'],
     ['Point og statistik', 'Pointene står på skærmen hele spillet, tiden og din varme over værktøjslinjen. Til sidst: vinderen, fyrværkeri og alles træffere, træfsikkerhed og erobringer – og kampens spiller.'],
   ],
