@@ -13,6 +13,7 @@ import dk.ulfen.lasertag.LaserData;
 import dk.ulfen.lasertag.LaserRegistry;
 import dk.ulfen.lasertag.block.ControlPointBlock;
 import dk.ulfen.lasertag.block.FlagStandBlock;
+import dk.ulfen.lasertag.block.SmokeMachineBlock;
 import dk.ulfen.lasertag.entity.LaserBot;
 import dk.ulfen.lasertag.game.Arena;
 import dk.ulfen.lasertag.game.Game;
@@ -194,6 +195,7 @@ public class LaserTagGameTests {
 		helper.setBlock(new BlockPos(30, 1, 10), LaserRegistry.FLAG_STANDS.get("blue"));
 		helper.setBlock(new BlockPos(16, 1, 20), LaserRegistry.CONTROL_POINT);
 		helper.setBlock(new BlockPos(16, 1, 30), LaserRegistry.POWER_STATION);
+		helper.setBlock(new BlockPos(20, 1, 30), LaserRegistry.SMOKE_MACHINE);
 		LaserBot red = bot(helper, "red", 10.5, 34.5);
 		LaserBot blue = bot(helper, "blue", 14.5, 34.5);
 		LaserBot red2 = bot(helper, "red", 12.5, 30.5);
@@ -203,6 +205,8 @@ public class LaserTagGameTests {
 		int t = 10;
 		helper.runAfterDelay(t, () -> {
 			check(helper, Arena.padsOf("red", level).size() == 1 && Arena.padsOf("blue", level).size() == 1, "the spawn pads did not register");
+			BlockPos smoke = helper.absolutePos(new BlockPos(20, 1, 30));
+			check(helper, level.getBlockState(smoke).getValue(SmokeMachineBlock.ON) && !Arena.toggleSmoke(level, smoke) && Arena.toggleSmoke(level, smoke), "the smoke machine did not switch");
 			check(helper, "tagged".equals(Lasers.fireRay(red, red.getEyePosition(), aim(red, blue), 20)), "a laser did not tag a bot of another team");
 			check(helper, Game.isDown(blue) && blue.isDown(), "the tagged bot is not out");
 			check(helper, Game.tag(red, red2) == null, "a bot tagged its own team");

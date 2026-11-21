@@ -134,6 +134,31 @@ function particles() {
       },
     };
   }
+  // Smoke machine haze: big, soft, slow puffs that drift, grow and fade.
+  const smoke = RULES.smoke;
+  out.haze = {
+    format_version: '1.10.0',
+    particle_effect: {
+      description: { identifier: `${NS}:haze`, basic_render_parameters: { material: 'particles_blend', texture: 'textures/particle/particles' } },
+      components: {
+        'minecraft:emitter_rate_instant': { num_particles: smoke.puffs },
+        'minecraft:emitter_lifetime_once': { active_time: 0.1 },
+        'minecraft:emitter_shape_sphere': { radius: 0.4, direction: 'outwards' },
+        'minecraft:particle_initial_speed': `math.random(${smoke.drift * 10}, ${smoke.drift * 20})`,
+        'minecraft:particle_motion_dynamic': { linear_acceleration: [0, 0.04, 0], linear_drag_coefficient: 0.5 },
+        'minecraft:particle_lifetime_expression': { max_lifetime: 'math.random(5, 8)' },
+        'minecraft:particle_initial_spin': { rotation: 'math.random(0, 360)' },
+        'minecraft:particle_appearance_billboard': {
+          size: ['0.8 + v.particle_age / v.particle_lifetime * 1.4', '0.8 + v.particle_age / v.particle_lifetime * 1.4'],
+          facing_camera_mode: 'rotate_xyz',
+          uv: { texture_width: 128, texture_height: 128, uv: [56, 0], uv_size: [8, 8] },
+        },
+        'minecraft:particle_appearance_tinting': {
+          color: [0.8, 0.82, 0.9, '0.4 * math.clamp(v.particle_age, 0, 1) * math.clamp((v.particle_lifetime - v.particle_age) / 2, 0, 1)'],
+        },
+      },
+    },
+  };
   return out;
 }
 

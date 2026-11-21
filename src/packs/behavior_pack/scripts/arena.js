@@ -1,15 +1,15 @@
 // The arena's game blocks. Each one ticks (minecraft:tick) and so tells the game
 // where it is: spawn pads (where teams start and come back), flag stands (take the
 // flag, bring it home), control points (who stands next to them) and power-up
-// stations (walk on when it glows). The Java twins are in dk.ulfen.lasertag.block.
+// stations (walk on when it glows); smoke machines pump haze in bursts. The Java twins are in dk.ulfen.lasertag.block.
 import { world } from '@minecraft/server';
 import { BLOCKS, RULES } from './data.js';
 import { pickPowerup, touchStand } from './logic.js';
 import { current, givePowerup, handle, isActive, running } from './game.js';
-import { centre, dist, isPlayer, nameOf, NS, now, teamOf, TEAMS } from './util.js';
+import { centre, dist, isPlayer, nameOf, NS, now, sound, teamOf, TEAMS } from './util.js';
 
 const KINDS = Object.fromEntries(BLOCKS.filter((b) => b.kind).map((b) => [b.id, b]));
-const STATE = { flag: `${NS}:flag`, owner: `${NS}:owner`, charged: `${NS}:charged` };
+const STATE = { flag: `${NS}:flag`, owner: `${NS}:owner`, charged: `${NS}:charged`, on: `${NS}:on` };
 
 /** Every game block seen ticking: "dim x y z" -> { kind, team, dim, pos, seen }. */
 const blocks = new Map();
@@ -159,6 +159,27 @@ function tickStation(block, key) {
   }
 }
 
+/** Is it time for haze? All machines pump together: a burst, then a rest. */
+export function smoking(tick) {
+  const cycle = (RULES.smoke.burst + RULES.smoke.pause) * 20;
+  return tick % cycle < RULES.smoke.burst * 20;
+}
+
+function tickSmoke(block) {
+  if (!block.permutation.getState(STATE.on) || !smoking(now())) return;
+  const c = centre(block.location);
+  if (now() % ((RULES.smoke.burst + RULES.smoke.pause) * 20) < 10) sound(block, 'random.fizz', 0.6);
+  particle(block.dimension, 'haze', { x: c.x, y: block.location.y + 1.2, z: c.z });
+}
+
+/** Switch a smoke machine on or off. */
+export function toggleSmoke(block) {
+  const on = !block.permutation.getState(STATE.on);
+  setState(block, STATE.on, on);
+  sound(block, 'random.click', on ? 1.2 : 0.8);
+  return on;
+}
+
 function tick(block) {
   const info = KINDS[block.typeId];
   if (!info) return;
@@ -168,12 +189,16 @@ function tick(block) {
   else if (info.kind === 'flag') tickFlag(block, info);
   else if (info.kind === 'point') tickPoint(block, key);
   else if (info.kind === 'station') tickStation(block, key);
+  else if (info.kind === 'smoke') tickSmoke(block);
 }
 
 export function registerArena(registry) {
   registry.registerCustomComponent(`${NS}:arena`, {
     onTick: ({ block }) => tick(block),
     onPlace: ({ block }) => tick(block),
+    onPlayerInteract: ({ block }) => {
+      if (KINDS[block.typeId]?.kind === 'smoke') toggleSmoke(block);
+    },
   });
 }
 

@@ -74,6 +74,10 @@ export const RULES = {
     },
   },
 
+  // A smoke machine pumps haze for `burst` seconds, then rests for `pause` seconds; all
+  // machines keep the same beat. `puffs` clouds every half second, drifting up to `drift`.
+  smoke: { burst: 4, pause: 8, puffs: 3, drift: 0.08 },
+
   bot: {
     health: 20,
     sight: 32,

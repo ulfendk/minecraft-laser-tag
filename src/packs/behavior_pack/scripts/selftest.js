@@ -1,13 +1,13 @@
 // Used by tools/bds-test.sh: `scriptevent lasertag:selftest` checks that the items,
 // blocks and the laser bot exist, then plays laser tag with bots (there are no
-// players on the test server): a laser tags a bot of another team and not its own
+// players on the test server): a smoke machine switches, a laser tags a bot of another team and not its own
 // or one behind a wall, the tagged bot comes back on its spawn pad, a shield takes
 // a hit, the pulse grenade tags, and games of team deathmatch (with bots that fire
 // by themselves), capture the flag and king of the hill run and end. It prints
 // PASS or FAIL when it is done.
 import { BlockPermutation, ItemStack, system, world } from '@minecraft/server';
 import { BLOCKS, CREATURES, ITEMS, RULES } from './data.js';
-import { padsOf } from './arena.js';
+import { padsOf, toggleSmoke } from './arena.js';
 import { counts, joinTeam } from './bots.js';
 import { current, givePowerup, isDown, isProtected, startGame, stopGame, tag } from './game.js';
 import { fireRay, pulse } from './guns.js';
@@ -62,6 +62,10 @@ async function selfTest() {
   place('power_station', 16, 30);
   await later(30);
   check(padsOf('red', dim).length === 1 && padsOf('blue', dim).length === 1, 'the spawn pads did not register');
+  // A smoke machine is placed on, and switches off and on again.
+  place('smoke_machine', 20, 30);
+  const smoke = dim.getBlock({ x: 20, y: Y, z: 30 });
+  check(smoke.permutation.getState(`${NS}:on`) === true && !toggleSmoke(smoke) && toggleSmoke(smoke), 'the smoke machine did not switch');
 
   // Two bots that stand still: red shoots blue.
   const bot = (team, x, z) => {

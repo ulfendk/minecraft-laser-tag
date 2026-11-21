@@ -11,12 +11,16 @@ import dk.ulfen.lasertag.block.ArenaBlock;
 import dk.ulfen.lasertag.block.ControlPointBlock;
 import dk.ulfen.lasertag.block.FlagStandBlock;
 import dk.ulfen.lasertag.block.PowerStationBlock;
+import dk.ulfen.lasertag.block.SmokeMachineBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -27,7 +31,8 @@ import org.jspecify.annotations.Nullable;
 /**
  * The arena's game blocks, as they tick: spawn pads (where teams start and come back),
  * flag stands (take the flag, bring it home), control points (who stands next to
- * them) and power-up stations (walk on while it glows). The twin of scripts/arena.js.
+ * them), power-up stations (walk on while it glows) and smoke machines (haze in
+ * bursts). The twin of scripts/arena.js.
  */
 public final class Arena {
 	private record Entry(String kind, @Nullable String team, ResourceKey<Level> dim, BlockPos pos, long seen) {}
@@ -176,7 +181,35 @@ public final class Arena {
 					break;
 				}
 			}
+			case "smoke" -> {
+				if (!state.getValue(SmokeMachineBlock.ON) || !smoking(now)) return;
+				int cycle = Math.round((R().smoke().burst() + R().smoke().pause()) * 20);
+				if (now % cycle < 10) level.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.4F, 0.6F);
+				// Big, soft campfire puffs, pushed out sideways so they hang over the arena.
+				var random = level.getRandom();
+				for (int i = 0; i < R().smoke().puffs(); i++) {
+					double a = random.nextDouble() * Math.PI * 2;
+					double v = R().smoke().drift() * (0.5 + random.nextDouble() * 0.5);
+					level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, top.x, top.y + 0.2, top.z, 0, Math.cos(a) * v, 0.01, Math.sin(a) * v, 1.0);
+				}
+			}
 			default -> {}
 		}
+	}
+
+	/** Is it time for haze? All machines pump together: a burst, then a rest. */
+	public static boolean smoking(long tick) {
+		int cycle = Math.round((R().smoke().burst() + R().smoke().pause()) * 20);
+		return tick % cycle < R().smoke().burst() * 20;
+	}
+
+	/** Switch a smoke machine on or off; true when it is now on. */
+	public static boolean toggleSmoke(ServerLevel level, BlockPos pos) {
+		BlockState state = level.getBlockState(pos);
+		if (!state.hasProperty(SmokeMachineBlock.ON)) return false;
+		boolean on = !state.getValue(SmokeMachineBlock.ON);
+		level.setBlock(pos, state.setValue(SmokeMachineBlock.ON, on), 3);
+		level.playSound(null, pos, SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.BLOCKS, 0.4F, on ? 1.2F : 0.8F);
+		return on;
 	}
 }

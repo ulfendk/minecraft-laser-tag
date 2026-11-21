@@ -11,6 +11,7 @@ import dk.ulfen.lasertag.block.ControlPointBlock;
 import dk.ulfen.lasertag.block.FlagStandBlock;
 import dk.ulfen.lasertag.block.GameConsoleBlock;
 import dk.ulfen.lasertag.block.PowerStationBlock;
+import dk.ulfen.lasertag.block.SmokeMachineBlock;
 import dk.ulfen.lasertag.entity.LaserBot;
 import dk.ulfen.lasertag.entity.PulseGrenade;
 import dk.ulfen.lasertag.item.LaserGunItem;
@@ -55,6 +56,7 @@ public final class LaserRegistry {
 	public static GameConsoleBlock GAME_CONSOLE;
 	public static ControlPointBlock CONTROL_POINT;
 	public static PowerStationBlock POWER_STATION;
+	public static SmokeMachineBlock SMOKE_MACHINE;
 	public static final Map<String, ArenaBlock> SPAWN_PADS = new HashMap<>();
 	public static final Map<String, FlagStandBlock> FLAG_STANDS = new HashMap<>();
 	/** Every block and its item, in creative-tab order. */
@@ -96,6 +98,7 @@ public final class LaserRegistry {
 		}
 		CONTROL_POINT = block("control_point", ControlPointBlock::new, metal.lightLevel(s -> 12));
 		POWER_STATION = block("power_station", PowerStationBlock::new, metal.lightLevel(s -> 10));
+		SMOKE_MACHINE = block("smoke_machine", SmokeMachineBlock::new, metal.lightLevel(s -> 3));
 		block("scoreboard_screen", Block::new, metal.lightLevel(s -> 10));
 		for (String colour : NEON) {
 			block("neon_panel_" + colour, Block::new, BlockBehaviour.Properties.of().mapColor(MapColor.SNOW).strength(0.8F).sound(SoundType.GLASS).lightLevel(s -> 15));

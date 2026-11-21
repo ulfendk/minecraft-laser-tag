@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0] - 2026-11-21
+
+### Added
+- Smoke Machine: fills the arena with haze, like a real laser tag arena. It pumps smoke for 4 seconds, rests for 8, and every machine keeps the same beat. Use it to switch it on or off. Crafted from iron, iron bars, redstone and a campfire.
+- Sponsor links (GitHub Sponsors and Buy Me a Coffee) on the website and in the README.
+
 ## [0.2.0] - 2026-11-21
 
 ### Changed

@@ -4,7 +4,7 @@ Laser tag for Minecraft – a **Bedrock add-on** and a **Java Edition mod (Fabri
 
 - **Four game modes**: Team Deathmatch, Free-for-all, Capture the Flag, and King of the Hill / Domination.
 - **A game console** runs each game, with a countdown, scores, a timer and a heat bar.
-- **Arena blocks**: flag stands, control points and power-up stations.
+- **Arena blocks**: flag stands, control points, power-up stations and smoke machines.
 - **Lasers never hurt**: a tag only puts you out for a few seconds.
 
 **Website (English and Danish):** https://ulfendk.github.io/minecraft-laser-tag/ · part of [all our mods](https://ulfendk.github.io/minecraft-index/)
@@ -31,6 +31,7 @@ Laser tag for Minecraft – a **Bedrock add-on** and a **Java Edition mod (Fabri
   - **Capture the Flag**: 3 captures. You can only capture while your own flag is home. A dropped flag can be returned by touching it, and goes home on its own after 30 s.
   - **King of the Hill**: one control point. With several points it plays as Domination. Each point held scores 1 a second; first to 120.
 - **Power-up stations**: rapid fire (no overheating), a shield (takes one hit), speed, and double points. A station recharges in 30 s.
+- **Smoke machines**: fill the arena with haze, like a real laser tag arena: 4 s of smoke, then 8 s of rest, all machines on the same beat. Use one to switch it on or off.
 - **Laser bots**: they hunt anyone in another team's vest and the other teams' bots. Only a player's hand can hurt them.
 - **Building blocks**: neon panels in seven colours, cover crates, black-light floor and a scoreboard screen.
 - **Commands**:
@@ -59,7 +60,7 @@ cd java && ./gradlew build runGameTest   # Java mod + game tests (after npm run 
 
 | Path | What |
 |---|---|
-| `src/rules.mjs` | guns, heat, tag times, modes, flags, control points, power-ups and bots: every number both editions share |
+| `src/rules.mjs` | guns, heat, tag times, modes, flags, control points, power-ups, smoke and bots: every number both editions share |
 | `src/lib/game.mjs` | the rules of the game: scores, streaks, flags, control points, heat and the end of a game. Copied into the Bedrock scripts as `logic.js` |
 | `src/items.mjs`, `src/blocks.mjs`, `src/creatures.mjs` | the items, blocks and laser bot, with names in English and Danish and their recipes |
 | `src/art.mjs`, `src/lib/icon.mjs` | item icons, neon block textures, vests and the pack icon, drawn in code |
@@ -71,6 +72,10 @@ cd java && ./gradlew build runGameTest   # Java mod + game tests (after npm run 
 ## Releases
 
 Bump `version` in `package.json`, add a section to `CHANGELOG.md`, and push a tag `vX.Y.Z`. The release workflow builds and tests both editions and attaches the `.mcaddon`, `.mcpack` and `.jar` files.
+
+## Support
+
+If you enjoy our mods, you can support us on [GitHub Sponsors](https://github.com/sponsors/ulfendk) or [Buy Me a Coffee](https://buymeacoffee.com/ulfendk).
 
 ## License
 

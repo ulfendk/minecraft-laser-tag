@@ -20,7 +20,7 @@ import com.google.gson.reflect.TypeToken;
 public final class LaserData {
 	public record Rules(List<String> teams, Map<String, Colour> colours, Map<String, Gun> guns, Heat heat, Grenade grenade, Tag tag,
 		List<List<Object>> streaks, List<List<Object>> multis, Map<String, Mode> modes, Console console, Flag flag, Point point,
-		Powerups powerups, Bot bot) {}
+		Powerups powerups, Smoke smoke, Bot bot) {}
 
 	/** `rgb` 0–255, and the chat colour code. */
 	public record Colour(int[] rgb, String chat) {
@@ -49,6 +49,8 @@ public final class LaserData {
 	public record Powerups(int recharge, float touch, Map<String, Kind> kinds) {}
 
 	public record Kind(int seconds) {}
+
+	public record Smoke(float burst, float pause, int puffs, float drift) {}
 
 	public record Bot(float health, float sight, float[] interval, float accuracy, float range) {}
 

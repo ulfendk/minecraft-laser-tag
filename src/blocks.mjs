@@ -1,11 +1,12 @@
 // Blocks: the game console, the arena's game blocks (spawn pads, flag stands, a
-// control point, a power-up station) and neon building blocks. Every block is a
+// control point, a power-up station, a smoke machine) and neon building blocks. Every block is a
 // full cube, with its own top where it has one; textures come from src/art.mjs.
 // A block with a `state` looks different for each value of it (the flag on its
-// stand or taken, who holds a control point, a charged power-up station).
+// stand or taken, who holds a control point, a charged power-up station, a smoke
+// machine on or off).
 // Names are [English, Danish].
 import { NS } from './lib/constants.mjs';
-import { BLOCK_TEXTURES, FLAG, NEON, NEON_TEXTURE, PAD, POINT, STATION } from './art.mjs';
+import { BLOCK_TEXTURES, FLAG, NEON, NEON_TEXTURE, PAD, POINT, SMOKE, STATION } from './art.mjs';
 import { TEAM_NAMES, shaped } from './items.mjs';
 import { TEAMS } from './rules.mjs';
 
@@ -22,7 +23,7 @@ const DYES = { white: 'white_dye', red: 'red_dye', blue: 'blue_dye', green: 'lim
 const WOOL = { red: 'red_wool', blue: 'blue_wool', green: 'lime_wool', yellow: 'yellow_wool' };
 
 /** Bedrock block state names (Java uses the part after the colon). */
-export const STATES = { flag: `${NS}:flag`, owner: `${NS}:owner`, charged: `${NS}:charged` };
+export const STATES = { flag: `${NS}:flag`, owner: `${NS}:owner`, charged: `${NS}:charged`, on: `${NS}:on` };
 
 const metal = { hardness: 3, sound: 'metal' };
 
@@ -53,6 +54,12 @@ export const BLOCKS = [
     state: { name: 'charged', values: [true, false] },
     looks: (charged) => ({ side: STATION.side(charged), top: STATION.top(charged) }),
   },
+  {
+    // Pumps haze over the arena in bursts while it is on; use it to switch it on or off.
+    id: 'smoke_machine', name: ['Smoke Machine', 'Røgmaskine'], ...metal, light: 3, map: '#3a3f4b', kind: 'smoke', component: 'arena', tick: 10,
+    state: { name: 'on', values: [true, false] },
+    looks: (on) => ({ side: SMOKE.side(on), top: SMOKE.top(on) }),
+  },
   { id: 'scoreboard_screen', name: ['Scoreboard Screen', 'Resultattavle'], faces: BLOCK_TEXTURES.scoreboard_screen, ...metal, light: 10, map: '#0b0f2a' },
   ...Object.entries(NEON).map(([colour, hexColour]) => ({
     id: `neon_panel_${colour}`, name: NEON_NAMES[colour], faces: { side: NEON_TEXTURE(hexColour) }, hardness: 0.8, sound: 'glass', light: 15, map: hexColour,
@@ -68,6 +75,7 @@ export const BLOCK_RECIPES = [
   ...TEAMS.map((t) => shaped(`flag_stand_${t}`, ['SW', 'S ', 'II'], { S: 'stick', W: WOOL[t], I })),
   shaped('control_point', ['GLG', 'RIR', 'III'], { G, L, R, I }),
   shaped('power_station', ['ALA', 'RIR', 'III'], { A: 'amethyst_shard', L, R, I }),
+  shaped('smoke_machine', ['IBI', 'RCR', 'III'], { I, B: 'iron_bars', R, C: 'campfire' }),
   shaped('scoreboard_screen', ['GGG', 'GRG', 'III'], { G, R, I }),
   ...Object.keys(NEON).map((c) => shaped(`neon_panel_${c}`, ['GDG', 'DLD', 'GDG'], { G, D: DYES[c], L }, 8)),
   shaped('cover_crate', ['NPN', 'PCP', 'NPN'], { N: 'iron_nugget', P: 'oak_planks', C: 'cyan_dye' }, 4),

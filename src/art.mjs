@@ -200,6 +200,24 @@ const stationSide = (charged) => encode(canvas(16, 16, (x, y) => {
 }));
 const stationTop = (charged) => encode(canvas(16, 16, (x, y) => (Math.abs(x - 7.5) < 1 || Math.abs(y - 7.5) < 1 ? hex(charged ? C.magenta : '#3a2a3e') : panel(x, y, 11))));
 
+/** The smoke machine: a round fan grille on a dark box, its lamp lit when it is on. */
+const smokeSide = (on) => encode(canvas(16, 16, (x, y) => {
+  if (edge(x, y, 1)) return panel(x, y, 14, C.panelLight);
+  if (x >= 11 && x <= 12 && y >= 11 && y <= 12) return hex(on ? C.cyan : '#1e3a44');
+  const d = Math.hypot(x - 7, y - 7);
+  if (d <= 5.2) {
+    if (d > 4.3) return hex(on ? '#c8d0e0' : C.light);
+    if (d < 1.3) return hex(C.light);
+    return y % 2 === 0 ? hex(on ? '#9aa3b4' : '#5a6070') : hex(C.outline);
+  }
+  return shade(hex(C.dark), 0.9 + 0.2 * noise3(x / 3, y / 3, 2, 14));
+}));
+const smokeTop = (on) => encode(canvas(16, 16, (x, y) => {
+  if (edge(x, y, 1)) return panel(x, y, 15, C.panelLight);
+  if (x >= 3 && x <= 12 && y >= 3 && y <= 12) return (x + y) % 3 === 0 ? hex(C.outline) : mix(hex(C.mid), hex('#e8ecf4'), on ? 0.35 : 0);
+  return panel(x, y, 16);
+}));
+
 /** Game console: a screen with a scoreboard on it and a row of buttons. */
 const consoleFront = () => encode(canvas(16, 16, (x, y) => {
   if (edge(x, y)) return hex(C.mid);
@@ -261,6 +279,7 @@ export const PAD = { top: padTop, side: padSide };
 export const FLAG = { side: flagSide, top: flagTop };
 export const POINT = { side: pointSide, top: pointTop };
 export const STATION = { side: stationSide, top: stationTop };
+export const SMOKE = { side: smokeSide, top: smokeTop };
 export const NEON_TEXTURE = neon;
 
 /** The vests as worn, in the vanilla 64x32 armour layout: dark straps with glowing pads. */
