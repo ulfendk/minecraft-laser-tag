@@ -61,7 +61,7 @@ export function buildBot(c) {
       add: { component_groups: [`${NS}:team_${t}`] },
     }])),
     [`${NS}:down`]: { remove: { component_groups: [`${NS}:armed`] }, add: { component_groups: [`${NS}:down`] } },
-    [`${NS}:up`]: { remove: { component_groups: [`${NS}:down`] }, add: { component_groups: [`${NS}:armed`] } },
+    [`${NS}:up`]: { remove: { component_groups: [`${NS}:down`, `${NS}:hold`] }, add: { component_groups: [`${NS}:armed`] } },
     [`${NS}:hold`]: { remove: { component_groups: [`${NS}:armed`, `${NS}:down`] }, add: { component_groups: [`${NS}:hold`] } },
   };
   return {

@@ -235,6 +235,8 @@ public class LaserTagGameTests {
 			check(helper, Game.start(level, console, "team_deathmatch", 3, 0, 2, 1, null), "the game did not start");
 			for (Entity e : level.getAllEntities()) if (e instanceof LaserBot b && b.entityTags().contains(Game.GAME_BOT_TAG)) gameBots.add(b);
 			check(helper, gameBots.size() == 2, gameBots.size() + " game bots, not 2");
+			// Held still until the test's own tag has scored, so they can't tag the test's bots first.
+			gameBots.forEach(b -> b.setHold(true));
 			check(helper, Game.current().phase.equals("countdown") && Game.tag(red, blue) == null, "a tag counted during the countdown");
 		});
 		t += 110;
@@ -251,6 +253,7 @@ public class LaserTagGameTests {
 			Vec3 g1 = helper.absoluteVec(new Vec3(22.5, 1, 6.5));
 			gameBots.get(0).teleportTo(g0.x, g0.y, g0.z);
 			gameBots.get(1).teleportTo(g1.x, g1.y, g1.z);
+			gameBots.forEach(bot -> bot.setHold(false));
 		});
 		t += 400;
 		helper.runAfterDelay(t, () -> {

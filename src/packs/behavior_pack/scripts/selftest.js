@@ -107,6 +107,8 @@ async function selfTest() {
   await later(10);
   const gameBots = dim.getEntities({ type: BOT, tags: [GAME_BOT_TAG] });
   check(gameBots.length === 2, `${gameBots.length} game bots, not 2`);
+  // Held still until the test's own tag has scored, so they can't tag the test's bots first.
+  for (const b of gameBots) b.triggerEvent(`${NS}:hold`);
   check(current()?.phase === 'countdown', 'no countdown');
   check(!tag(red, blue), 'a tag counted during the countdown');
   await until(() => current()?.phase === 'running', 140);
@@ -120,6 +122,7 @@ async function selfTest() {
   // The game's bots find each other and fire.
   gameBots[0].teleport({ x: 12.5, y: Y, z: 4.5 });
   gameBots[1].teleport({ x: 22.5, y: Y, z: 4.5 });
+  for (const b of gameBots) b.triggerEvent(`${NS}:up`);
   const shots = () => gameBots.reduce((n, b) => n + (current()?.stats[b.nameTag]?.shots ?? 0), 0);
   check(await until(() => shots() > 0, 600), 'the game\'s bots never fired');
   console.log(`${LOG} selftest: the bots fired ${shots()} shots (the AI shot ${counts.shots} times, ${counts.fired} fired), scores ${JSON.stringify(current()?.scores)}`);
