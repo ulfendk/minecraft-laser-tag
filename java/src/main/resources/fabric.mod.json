@@ -1,0 +1,27 @@
+{
+	"schemaVersion": 1,
+	"id": "lasertag",
+	"version": "${version}",
+	"name": "Laser Tag",
+	"description": "Laser tag: laser guns, pulse grenades, team vests, a game console, spawn pads, flag stands, control points, power-up stations and laser bots. Team Deathmatch, Free-for-all, Capture the Flag and King of the Hill. Lasers never hurt.",
+	"authors": ["ulfendk"],
+	"contact": {
+		"homepage": "https://ulfendk.github.io/minecraft-laser-tag/",
+		"sources": "https://github.com/ulfendk/minecraft-laser-tag",
+		"issues": "https://github.com/ulfendk/minecraft-laser-tag/issues"
+	},
+	"license": "MIT",
+	"icon": "assets/lasertag/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["dk.ulfen.lasertag.LaserTag"],
+		"client": ["dk.ulfen.lasertag.client.LaserTagClient"]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*",
+		"geckolib": ">=5.5"
+	}
+}

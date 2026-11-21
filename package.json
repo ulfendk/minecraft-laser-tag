@@ -1,0 +1,28 @@
+{
+  "name": "laser-tag",
+  "version": "0.1.0",
+  "description": "Laser Tag: a Minecraft Bedrock add-on and Java mod with laser guns, team vests, a game console, four game modes, arena blocks, power-ups and laser bots",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "validate": "node tools/validate.mjs",
+    "package": "node tools/package.mjs",
+    "preview": "node tools/preview.mjs",
+    "test": "node --test test/*.test.mjs",
+    "all": "npm run build && npm run validate && npm test && npm run package",
+    "site": "node tools/site.mjs",
+    "test:server": "tools/bds-test.sh"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@minecraft/server": "^2.0.0",
+    "@minecraft/server-ui": "^2.0.0",
+    "@minecraft/vanilla-data": "^1.26.60",
+    "fflate": "^0.8.2",
+    "pngjs": "^7.0.0"
+  }
+}

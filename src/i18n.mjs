@@ -1,0 +1,320 @@
+// In-game texts (both editions) and website texts, in English and Danish.
+// Item, block and creature names live with their specs as [English, Danish].
+import { NS } from './lib/constants.mjs';
+import { TEAM_NAMES } from './items.mjs';
+import { RULES } from './rules.mjs';
+
+export const LOCALES = ['en_US', 'da_DK'];
+const IDX = { en_US: 0, da_DK: 1 };
+
+const MODE_NAMES = {
+  team_deathmatch: ['Team Deathmatch', 'Hold mod hold'],
+  free_for_all: ['Free-for-all', 'Alle mod alle'],
+  capture_the_flag: ['Capture the Flag', 'Erobr flaget'],
+  king_of_the_hill: ['King of the Hill', 'Bakkens konge'],
+};
+
+/** In-game texts: `lasertag.<key>` in the lang files. %s are filled in by the scripts and the mod. */
+const GAME = {
+  description: ['Laser tag: laser guns, team vests, a game console, four game modes and laser bots.', 'Lasertag: lasergeværer, holdveste, en spilkonsol, fire spiltyper og laserrobotter.'],
+  itemGroup: ['Laser Tag', 'Lasertag'],
+  pulse_grenade: ['Pulse Grenade', 'Pulsgranat'],
+  bot_shot: ['Laser Shot', 'Laserskud'],
+  'hud.no_vest': ['Put on a laser vest to play', 'Tag en laservest på for at spille'],
+  'hud.not_yet': ['Wait for GO!', 'Vent på START!'],
+  'hud.overheated': ['Overheated! Cooling down…', 'Overophedet! Køler ned …'],
+  'hud.heat': ['Heat %s', 'Varme %s'],
+  'hud.time': ['%s left', '%s tilbage'],
+  'hud.down': ['Tagged! Back in %s', 'Ramt! Tilbage om %s'],
+  'hud.you_tagged': ['You tagged %s', 'Du ramte %s'],
+  'hud.shield_hit': ['Your shield took the hit', 'Dit skjold tog skuddet'],
+  'hud.carrying': ['You have the %s flag – take it home!', 'Du har det %s flag – bring det hjem!'],
+  'hud.capturing': ['Taking the control point: %s of %s', 'Tager kontrolpunktet: %s af %s'],
+  'title.tagged': ['TAGGED', 'RAMT'],
+  'title.by': ['by %s', 'af %s'],
+  'title.ready': ['Get ready', 'Gør dig klar'],
+  'title.go': ['GO!', 'START!'],
+  feed: ['%s tagged %s', '%s ramte %s'],
+  'streak.on_a_roll': ['%s is on a roll!', '%s kører derudad!'],
+  'streak.unstoppable': ['%s is unstoppable!', '%s er ustoppelig!'],
+  'streak.legendary': ['%s is LEGENDARY!', '%s er LEGENDARISK!'],
+  'multi.double': ['Double tag!', 'Dobbelt!'],
+  'multi.triple': ['Triple tag!', 'Tredobbelt!'],
+  'multi.quad': ['Quad tag!', 'Firedobbelt!'],
+  minute: ['One minute left!', 'Ét minut tilbage!'],
+  flag_taken: ['%s took the %s flag!', '%s tog det %s flag!'],
+  flag_dropped: ['%s dropped the %s flag', '%s tabte det %s flag'],
+  flag_returned: ['The %s flag is back home', 'Det %s flag er hjemme igen'],
+  captured: ['%s captured the %s flag!', '%s erobrede det %s flag!'],
+  point_taken: ['%s took a control point', '%s tog et kontrolpunkt'],
+  point_lost: ['%s lost a control point', '%s mistede et kontrolpunkt'],
+  'powerup.rapid_fire': ['Rapid fire! No overheating', 'Hurtigskud! Ingen overophedning'],
+  'powerup.shield': ['Shield on: it takes one hit', 'Skjold på: det tager ét skud'],
+  'powerup.speed': ['Speed boost!', 'Fart på!'],
+  'powerup.double_points': ['Double points!', 'Dobbelte point!'],
+  started: ['%s started a game of %s: %s minutes, first to %s', '%s startede et spil %s: %s minutter, først til %s'],
+  stopped: ['The game was stopped', 'Spillet blev stoppet'],
+  over: ['Game over!', 'Spillet er slut!'],
+  winner: ['%s wins!', '%s vinder!'],
+  draw: ['It’s a draw!', 'Uafgjort!'],
+  stats: ['%s: %s tags, tagged %s times, %s accuracy, %s captures', '%s: %s ramt, ramt selv %s gange, %s træfsikkerhed, %s erobringer'],
+  mvp: ['MVP: %s', 'Kampens spiller: %s'],
+  running: ['A game is on. Use the console again to stop it.', 'Der er et spil i gang. Brug konsollen igen for at stoppe det.'],
+  scoreboard: ['Laser Tag', 'Lasertag'],
+  'form.title': ['Laser Tag – new game', 'Lasertag – nyt spil'],
+  'form.mode': ['Game mode', 'Spiltype'],
+  'form.minutes': ['Minutes', 'Minutter'],
+  'form.score': ['Score to win (0 = the mode’s own)', 'Point for at vinde (0 = spiltypens eget)'],
+  'form.bots': ['Laser bots per team', 'Laserrobotter pr. hold'],
+  'form.teams': ['Teams', 'Hold'],
+  'form.start': ['Start', 'Start'],
+  'form.stop_title': ['Laser Tag', 'Lasertag'],
+  'form.stop_body': ['A game is on. Stop it now?', 'Der er et spil i gang. Skal det stoppes nu?'],
+  'form.stop': ['Stop the game', 'Stop spillet'],
+  'form.keep': ['Keep playing', 'Spil videre'],
+  'menu.title': ['Laser Tag – click to choose, then Start:', 'Lasertag – klik for at vælge, og så Start:'],
+  'menu.mode': ['Mode:', 'Spiltype:'],
+  'menu.minutes': ['Minutes:', 'Minutter:'],
+  'menu.bots': ['Bots per team:', 'Robotter pr. hold:'],
+  'menu.teams': ['Teams:', 'Hold:'],
+  'menu.start': ['[ START ]', '[ START ]'],
+  'menu.stop': ['[ STOP THE GAME ]', '[ STOP SPILLET ]'],
+};
+
+/** Bedrock .lang entries as [key, value] pairs (tools/java.mjs converts them for Java). */
+export function langEntries(locale, { items, blocks, creatures, projectiles, version }) {
+  const i = IDX[locale];
+  const g = (k) => GAME[k][i];
+  const skip = new Set(['description', 'itemGroup', ...projectiles.map((p) => p.id)]);
+  return [
+    ['pack.description', `${g('description')} v${version}`],
+    ...creatures.flatMap((c) => [
+      [`entity.${NS}:${c.id}.name`, c.name[i]],
+      [`item.spawn_egg.entity.${NS}:${c.id}.name`, i ? `${c.name[i]}-spawnæg` : `${c.name[i]} Spawn Egg`],
+    ]),
+    ...projectiles.map((p) => [`entity.${NS}:${p.id}.name`, g(p.id)]),
+    ...items.map((it) => [`item.${NS}:${it.id}.name`, it.name[i]]),
+    ...blocks.map((b) => [`tile.${NS}:${b.id}.name`, b.name[i]]),
+    ...Object.entries(TEAM_NAMES).map(([t, n]) => [`${NS}.team.${t}`, n[i]]),
+    // "the red flag" – Danish needs the definite form of the colour.
+    ...Object.entries(TEAM_NAMES).map(([t, n]) => [`${NS}.flag.${t}`, i ? { red: 'røde', blue: 'blå', green: 'grønne', yellow: 'gule' }[t] : n[0].toLowerCase()]),
+    ...Object.entries(MODE_NAMES).map(([m, n]) => [`${NS}.mode.${m}`, n[i]]),
+    ...Object.keys(GAME).filter((k) => !skip.has(k)).map((k) => [`${NS}.${k}`, g(k)]),
+    [`itemGroup.${NS}`, g('itemGroup')],
+  ];
+}
+
+// ---------------------------------------------------------------- website
+
+export const LANGUAGES = {
+  en: { label: 'English', dir: '', htmlLang: 'en', dateLocale: 'en-GB' },
+  da: { label: 'Dansk', dir: 'da', htmlLang: 'da', dateLocale: 'da-DK' },
+};
+
+const R = RULES;
+
+const en = {
+  allMods: 'All our mods',
+  name: 'Laser Tag',
+  title: 'Laser Tag – Minecraft add-on and mod',
+  description: 'Laser tag for Minecraft Bedrock and Java Edition: four laser guns, pulse grenades, team vests, a game console, spawn pads, flags, control points, power-ups and laser bots. Team Deathmatch, Free-for-all, Capture the Flag and King of the Hill. Nobody gets hurt. Free download.',
+  tagline: 'Put on a team vest, grab a blaster and play laser tag with your friends – or against laser bots. Four game modes, a console that runs the game, scores on the screen, flags to steal, hills to hold and power-ups to grab. Lasers never hurt: a tag puts you out for a few seconds, then you’re back in.',
+  download: 'iPad, phone, console & Windows: Bedrock',
+  downloadJava: 'Mac & PC: Java Edition',
+  which: '<b>Which one do I need?</b> Playing on an <b>iPad</b>, iPhone, Android, Xbox, PlayStation, Switch or Minecraft for Windows? That is <b>Bedrock Edition</b> – take the first download. Playing on a computer with the Minecraft <b>Java Edition</b> launcher (Mac, Windows or Linux)? Take the Java download. Not sure? If you bought Minecraft in the App Store or Google Play, it is Bedrock.',
+  bedrockTitle: 'Install on iPad, phone, console or Windows (Bedrock)',
+  javaTitle: 'Install on Mac or PC (Java Edition)',
+  steps: (link) => [
+    `<strong>Download</strong> ${link} on your Windows PC, Android phone or tablet, or iPhone or iPad.`,
+    '<strong>Open the file.</strong> Minecraft starts and imports both packs.',
+    '<strong>Create or edit a world.</strong> Under <em>Behavior Packs</em>, turn on <em>Laser Tag</em>. The resource pack is added automatically.',
+    '<strong>Find everything</strong> in the creative inventory, or craft it.',
+  ],
+  javaSteps: (jar, fabric, api, gecko) => [
+    `<strong>Install</strong> ${fabric} for Minecraft 26.3.`,
+    `<strong>Download</strong> ${jar}, plus ${api} and ${gecko}.`,
+    '<strong>Put all three files</strong> in your <em>mods</em> folder and start Minecraft with the Fabric profile.',
+    '<strong>Find everything</strong> in the <em>Laser Tag</em> creative tab, or craft it.',
+  ],
+  serverNote: (bp, rp) => `Running a server? Use the separate ${bp('behavior pack')} and ${rp('resource pack')}. Xbox, PlayStation and Switch can’t import add-ons from files, but you can join a world or Realm that has the add-on.`,
+  upgradeTitle: 'Upgrading to a new version',
+  upgradeSteps: [
+    '<strong>Download the new version</strong> and open the file. A newer version replaces the one you have, and your worlds use it the next time you load them.',
+    '<strong>Still running the old version?</strong> (or Minecraft says it is already installed): go to <em>Settings → Storage</em>, delete Laser Tag under both <em>Resource Packs</em> and <em>Behavior Packs</em>, then open the new file again.',
+    '<strong>Check the world:</strong> in the world’s <em>Edit</em> screen, under <em>Behavior Packs</em> and <em>Resource Packs</em>, make sure Laser Tag is active. A world you imported or downloaded can carry its own old copy: deactivate it there, save, and activate the new one.',
+  ],
+  upgradeServer: 'On a server, replace the add-on’s folders in <em>behavior_packs</em> and <em>resource_packs</em> with the new ones and restart it.',
+  upgradeJava: 'Delete the old Laser Tag jar from your <em>mods</em> folder and put the new one in its place. Keep only one version in the folder. If the new version needs a newer Fabric API or GeckoLib, update those too.',
+  allVersions: 'All versions',
+  latestVersion: 'Latest version',
+  released: 'released',
+  install: 'Install',
+
+  howTitle: 'How to play',
+  how: [
+    ['1. Build an arena', 'Put down a spawn pad for each team, some cover crates and neon panels – and a game console where everyone can reach it. Add flag stands, control points and power-up stations for the other modes.'],
+    ['2. Pick a team', 'Everyone puts on a laser vest: red, blue, green or yellow. The vest is your team – and the target. Without a vest you can’t fire and can’t be tagged.'],
+    ['3. Start the game', `Use the game console to pick the mode, the time, the score to win and how many laser bots join each team. Everyone within ${R.console.reach} blocks of it is in. A ${R.console.countdown}-second countdown, then GO!`],
+    ['4. Tag!', `Use a laser gun to fire. Hit a vest from another team and it is out for ${R.tag.down} seconds: it can’t fire, and then it comes back on its team’s spawn pad, safe for ${R.tag.protect} seconds. Nobody is ever hurt.`],
+  ],
+  modesTitle: 'Four game modes',
+  modes: {
+    team_deathmatch: `Every tag is a point for your team. First team to ${R.modes.team_deathmatch.scoreLimit} wins – or the team ahead when the time runs out.`,
+    free_for_all: `Everyone against everyone, whatever vest you wear. First to ${R.modes.free_for_all.scoreLimit} tags wins.`,
+    capture_the_flag: `Run to the other team’s flag stand to take their flag, and bring it home to your own stand – while your own flag is there. Get tagged and you drop it; your team can touch it to send it home, or it goes back by itself after ${R.flag.returnAfter} seconds. ${R.modes.capture_the_flag.scoreLimit} captures win.`,
+    king_of_the_hill: `Stand next to a control point to take it – more of you take it faster, and two teams at once take nothing. Every point your team holds scores a point a second. One control point is King of the Hill; put down more for Domination. First to ${R.modes.king_of_the_hill.scoreLimit} wins.`,
+  },
+  lasersTitle: 'Laser guns',
+  lasersLede: 'No ammunition: lasers heat up when you fire, and an overheated gun has to cool right down before it fires again. Keep an eye on the heat bar.',
+  guns: {
+    laser_pistol: 'Small and quick. Fires as fast as you can click and barely heats up.',
+    laser_blaster: 'The all-rounder: a long reach and a steady rate of fire.',
+    laser_rifle: 'Reaches right across the arena. Slow to fire and gets hot – sneak to zoom in.',
+    scatter_laser: 'Five beams at once in a wide cone. Short range – perfect round corners.',
+    pulse_grenade: `Throw it: where it lands it tags every vest from another team within ${R.grenade.radius} blocks.`,
+  },
+  statRange: 'Range',
+  statRate: 'Shots a second',
+  statHeat: 'Shots before overheating',
+  statRadius: 'Radius',
+  blocks_: (n) => `${n} blocks`,
+  vestsTitle: 'Vests, tags and scores',
+  vests: [
+    ['Team vests', 'Four colours, crafted from leather, dye and redstone. They don’t protect you – they only show your team and light up when you are hit.'],
+    ['Out for a moment', `A tag puts the vest out for ${R.tag.down} seconds: you are slowed and can’t fire. Then you are sent to one of your team’s spawn pads and can’t be tagged for ${R.tag.protect} seconds.`],
+    ['Streaks and multi-tags', 'Tag three in a row without being tagged and everyone hears you are on a roll – five is unstoppable, eight is legendary. Two tags within three seconds is a double tag.'],
+    ['Scores and stats', 'Scores are on the screen all game, the time and your heat above your hotbar. At the end: the winner, fireworks, and everyone’s tags, accuracy and captures – and the MVP.'],
+  ],
+  arenaTitle: 'Arena blocks',
+  arena: [
+    ['Game console', 'Runs the game: pick the mode, minutes, score to win, number of teams and laser bots, and start. Use it again to stop a game early.'],
+    ['Spawn pads', 'Where a team starts, and where tagged players come back. Put down a few for each team.'],
+    ['Flag stands', 'One for each team in Capture the Flag. The flag disappears from the stand while it is away.'],
+    ['Control points', 'Light up in the colour of the team that holds them. One for King of the Hill, more for Domination.'],
+    ['Power-up stations', `Walk onto one when it glows to get a power-up. It recharges in ${R.powerups.recharge} seconds.`],
+    ['Neon and cover', 'Neon panels in seven colours, cover crates, a black-light floor and a scoreboard screen – all glowing.'],
+  ],
+  powerTitle: 'Power-ups',
+  powerups: {
+    rapid_fire: `No overheating for ${R.powerups.kinds.rapid_fire.seconds} seconds.`,
+    shield: `Takes one hit for you (for up to ${R.powerups.kinds.shield.seconds} seconds).`,
+    speed: `Run faster for ${R.powerups.kinds.speed.seconds} seconds.`,
+    double_points: `Your tags count double for ${R.powerups.kinds.double_points.seconds} seconds.`,
+  },
+  powerNames: { rapid_fire: 'Rapid fire', shield: 'Shield', speed: 'Speed', double_points: 'Double points' },
+  botsTitle: 'Laser bots',
+  bots: `Not enough players? The console can bring up to ${R.console.botsPerTeam} laser bots onto every team. They hunt anyone in another team’s vest (and the other teams’ bots), fire with a small reaction delay and miss now and then. Tagged, they slump for ${R.tag.down} seconds and come back on their pad like everyone else. Spawn eggs put one down on a random team for practice; hit one to clear it away.`,
+  tipsTitle: 'Good to know',
+  tips: [
+    ['Free play', 'You don’t need a game: with vests on, lasers tag anyway. The console adds the scores, the clock and the modes.'],
+    ['Safe for everyone', 'Lasers never hurt players, mobs or blocks, and they don’t break anything.'],
+    ['Commands', 'Game hosts can also use <em>/scriptevent lasertag:start</em> and <em>lasertag:stop</em> on Bedrock, and <em>/lasertag start</em> and <em>/lasertag stop</em> on Java.'],
+  ],
+  itemsTitle: 'Everything in the add-on',
+  footerSource: (src, issues) => `Laser Tag is free and open source. ${src('Source code on GitHub')} · ${issues('Report a problem')}`,
+  footerLegal: 'Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.',
+};
+
+const da = {
+  allMods: 'Alle vores mods',
+  name: 'Lasertag',
+  title: 'Lasertag – tilføjelse og mod til Minecraft',
+  description: 'Lasertag til Minecraft Bedrock og Java Edition: fire lasergeværer, pulsgranater, holdveste, en spilkonsol, startplader, flag, kontrolpunkter, powerups og laserrobotter. Hold mod hold, Alle mod alle, Erobr flaget og Bakkens konge. Ingen kommer til skade. Gratis download.',
+  tagline: 'Tag en holdvest på, snup en blaster og spil lasertag med dine venner – eller mod laserrobotter. Fire spiltyper, en konsol, der styrer spillet, point på skærmen, flag, der skal stjæles, bakker, der skal holdes, og powerups, der skal snuppes. Lasere gør aldrig ondt: Bliver du ramt, er du ude et par sekunder, og så er du med igen.',
+  download: 'iPad, telefon, konsol & Windows: Bedrock',
+  downloadJava: 'Mac & pc: Java Edition',
+  which: '<b>Hvilken skal jeg bruge?</b> Spiller du på <b>iPad</b>, iPhone, Android, Xbox, PlayStation, Switch eller Minecraft til Windows? Så er det <b>Bedrock Edition</b> – tag den første download. Spiller du på en computer med Minecraft <b>Java Edition</b>-launcheren (Mac, Windows eller Linux)? Så tag Java-downloaden. I tvivl? Hvis Minecraft er købt i App Store eller Google Play, er det Bedrock.',
+  bedrockTitle: 'Installér på iPad, telefon, konsol eller Windows (Bedrock)',
+  javaTitle: 'Installér på Mac eller pc (Java Edition)',
+  steps: (link) => [
+    `<strong>Download</strong> ${link} på din Windows-pc, Android-telefon eller -tablet, iPhone eller iPad.`,
+    '<strong>Åbn filen.</strong> Minecraft starter og importerer begge pakker.',
+    '<strong>Opret eller redigér en verden.</strong> Slå <em>Laser Tag</em> til under <em>Adfærdspakker</em>. Ressourcepakken kommer automatisk med.',
+    '<strong>Find det hele</strong> i den kreative oversigt, eller lav det selv.',
+  ],
+  javaSteps: (jar, fabric, api, gecko) => [
+    `<strong>Installér</strong> ${fabric} til Minecraft 26.3.`,
+    `<strong>Download</strong> ${jar} samt ${api} og ${gecko}.`,
+    '<strong>Læg alle tre filer</strong> i din <em>mods</em>-mappe, og start Minecraft med Fabric-profilen.',
+    '<strong>Find det hele</strong> under fanen <em>Lasertag</em> i kreativ tilstand, eller lav det selv.',
+  ],
+  serverNote: (bp, rp) => `Kører du en server? Brug den separate ${bp('adfærdspakke')} og ${rp('ressourcepakke')}. Xbox, PlayStation og Switch kan ikke importere tilføjelser fra filer, men du kan deltage i en verden eller Realm, der har tilføjelsen.`,
+  upgradeTitle: 'Opdatering til en ny version',
+  upgradeSteps: [
+    '<strong>Hent den nye version</strong>, og åbn filen. En nyere version erstatter den, du har, og dine verdener bruger den, næste gang du åbner dem.',
+    '<strong>Kører den gamle version stadig?</strong> (eller siger Minecraft, at den allerede er installeret): Gå til <em>Indstillinger → Lagerplads</em>, slet Laser Tag under både <em>Ressourcepakker</em> og <em>Adfærdspakker</em>, og åbn så den nye fil igen.',
+    '<strong>Tjek verdenen:</strong> Sørg for, at Laser Tag er slået til under <em>Adfærdspakker</em> og <em>Ressourcepakker</em>, når du redigerer verdenen. En verden, du har importeret eller hentet, kan have sin egen gamle kopi med: Slå den fra dér, gem, og slå den nye til.',
+  ],
+  upgradeServer: 'På en server skal du erstatte tilføjelsens mapper i <em>behavior_packs</em> og <em>resource_packs</em> med de nye og genstarte den.',
+  upgradeJava: 'Slet den gamle Laser Tag-jar fra din <em>mods</em>-mappe, og læg den nye i stedet. Hav kun én version i mappen. Kræver den nye version en nyere Fabric API eller GeckoLib, så opdatér dem også.',
+  allVersions: 'Alle versioner',
+  latestVersion: 'Nyeste version',
+  released: 'udgivet',
+  install: 'Installér',
+
+  howTitle: 'Sådan spiller I',
+  how: [
+    ['1. Byg en arena', 'Sæt en startplade ned til hvert hold, nogle dækningskasser og neonpaneler – og en spilkonsol, som alle kan nå. Til de andre spiltyper skal der flagstandere, kontrolpunkter og powerup-stationer til.'],
+    ['2. Vælg et hold', 'Alle tager en laservest på: rød, blå, grøn eller gul. Vesten er dit hold – og det, der skal rammes. Uden vest kan du hverken skyde eller blive ramt.'],
+    ['3. Start spillet', `Brug spilkonsollen til at vælge spiltype, tid, point for at vinde og hvor mange laserrobotter, der skal være på hvert hold. Alle inden for ${R.console.reach} blokke er med. ${R.console.countdown} sekunders nedtælling, og så START!`],
+    ['4. Skyd!', `Brug et lasergevær for at skyde. Rammer du en vest fra et andet hold, er den ude i ${R.tag.down} sekunder: Den kan ikke skyde, og så kommer den tilbage på sit holds startplade, hvor den ikke kan rammes de første ${R.tag.protect} sekunder. Ingen kommer nogensinde til skade.`],
+  ],
+  modesTitle: 'Fire spiltyper',
+  modes: {
+    team_deathmatch: `Hvert skud, der rammer, giver dit hold et point. Det første hold med ${R.modes.team_deathmatch.scoreLimit} vinder – eller det hold, der fører, når tiden er gået.`,
+    free_for_all: `Alle mod alle, uanset hvilken vest du har på. Den første med ${R.modes.free_for_all.scoreLimit} træffere vinder.`,
+    capture_the_flag: `Løb hen til det andet holds flagstander og tag deres flag, og bring det hjem til jeres egen stander – mens jeres eget flag står der. Bliver du ramt, taber du det; dit hold kan røre det for at sende det hjem, ellers kommer det selv hjem efter ${R.flag.returnAfter} sekunder. ${R.modes.capture_the_flag.scoreLimit} erobringer vinder.`,
+    king_of_the_hill: `Stil dig ved et kontrolpunkt for at tage det – jo flere I er, jo hurtigere går det, og står to hold der, sker der ingenting. Hvert punkt, dit hold har, giver et point i sekundet. Ét kontrolpunkt er Bakkens konge; sæt flere ned, så er det Dominans. Det første hold med ${R.modes.king_of_the_hill.scoreLimit} vinder.`,
+  },
+  lasersTitle: 'Lasergeværer',
+  lasersLede: 'Ingen ammunition: Laserne bliver varme, når du skyder, og et overophedet gevær skal køle helt ned, før det skyder igen. Hold øje med varmebjælken.',
+  guns: {
+    laser_pistol: 'Lille og hurtig. Skyder så hurtigt, du kan klikke, og bliver næsten ikke varm.',
+    laser_blaster: 'Den alsidige: lang rækkevidde og jævnt tempo.',
+    laser_rifle: 'Rækker tværs over hele arenaen. Skyder langsomt og bliver varm – snig for at zoome ind.',
+    scatter_laser: 'Fem stråler på én gang i en bred kegle. Kort rækkevidde – perfekt rundt om hjørner.',
+    pulse_grenade: `Kast den: Hvor den lander, rammer den alle veste fra andre hold inden for ${String(R.grenade.radius).replace('.', ',')} blokke.`,
+  },
+  statRange: 'Rækkevidde',
+  statRate: 'Skud i sekundet',
+  statHeat: 'Skud før overophedning',
+  statRadius: 'Radius',
+  blocks_: (n) => `${String(n).replace('.', ',')} blokke`,
+  vestsTitle: 'Veste, træffere og point',
+  vests: [
+    ['Holdveste', 'Fire farver, lavet af læder, farvestof og rødsten. De beskytter dig ikke – de viser bare dit hold og lyser op, når du bliver ramt.'],
+    ['Ude et øjeblik', `Et skud, der rammer, slår vesten fra i ${R.tag.down} sekunder: Du bliver langsom og kan ikke skyde. Så bliver du sendt til en af dit holds startplader og kan ikke rammes i ${R.tag.protect} sekunder.`],
+    ['Stime og dobbeltskud', 'Ram tre i træk uden selv at blive ramt, så hører alle, at du kører derudad – fem er ustoppelig, otte er legendarisk. To træffere inden for tre sekunder er dobbelt.'],
+    ['Point og statistik', 'Pointene står på skærmen hele spillet, tiden og din varme over værktøjslinjen. Til sidst: vinderen, fyrværkeri og alles træffere, træfsikkerhed og erobringer – og kampens spiller.'],
+  ],
+  arenaTitle: 'Arenablokke',
+  arena: [
+    ['Spilkonsol', 'Styrer spillet: Vælg spiltype, minutter, point for at vinde, antal hold og laserrobotter, og start. Brug den igen for at stoppe et spil før tid.'],
+    ['Startplader', 'Hvor et hold starter, og hvor spillere, der er blevet ramt, kommer tilbage. Sæt et par stykker ned til hvert hold.'],
+    ['Flagstandere', 'Én til hvert hold i Erobr flaget. Flaget forsvinder fra standeren, mens det er væk.'],
+    ['Kontrolpunkter', 'Lyser i farven på det hold, der har dem. Ét til Bakkens konge, flere til Dominans.'],
+    ['Powerup-stationer', `Gå op på en, når den lyser, og få en powerup. Den lader op igen på ${R.powerups.recharge} sekunder.`],
+    ['Neon og dækning', 'Neonpaneler i syv farver, dækningskasser, et blacklight-gulv og en resultattavle – og det hele lyser.'],
+  ],
+  powerTitle: 'Powerups',
+  powerups: {
+    rapid_fire: `Ingen overophedning i ${R.powerups.kinds.rapid_fire.seconds} sekunder.`,
+    shield: `Tager ét skud for dig (i op til ${R.powerups.kinds.shield.seconds} sekunder).`,
+    speed: `Løb hurtigere i ${R.powerups.kinds.speed.seconds} sekunder.`,
+    double_points: `Dine træffere tæller dobbelt i ${R.powerups.kinds.double_points.seconds} sekunder.`,
+  },
+  powerNames: { rapid_fire: 'Hurtigskud', shield: 'Skjold', speed: 'Fart', double_points: 'Dobbelte point' },
+  botsTitle: 'Laserrobotter',
+  bots: `Ikke spillere nok? Konsollen kan sætte op til ${R.console.botsPerTeam} laserrobotter på hvert hold. De jagter alle i et andet holds vest (og de andre holds robotter), skyder med en lille forsinkelse og rammer ved siden af en gang imellem. Bliver de ramt, synker de sammen i ${R.tag.down} sekunder og kommer tilbage på deres startplade som alle andre. Med et spawnæg kan du sætte en ned på et tilfældigt hold for at øve dig; slå på den for at fjerne den.`,
+  tipsTitle: 'Godt at vide',
+  tips: [
+    ['Frit spil', 'Du behøver ikke et spil: Med veste på rammer laserne alligevel. Konsollen giver point, ur og spiltyper.'],
+    ['Sikkert for alle', 'Lasere gør aldrig skade på spillere, dyr eller blokke, og de ødelægger ingenting.'],
+    ['Kommandoer', 'Den, der styrer spillet, kan også bruge <em>/scriptevent lasertag:start</em> og <em>lasertag:stop</em> på Bedrock og <em>/lasertag start</em> og <em>/lasertag stop</em> på Java.'],
+  ],
+  itemsTitle: 'Alt i tilføjelsen',
+  footerSource: (src, issues) => `Lasertag er gratis og open source. ${src('Kildekode på GitHub')} · ${issues('Meld et problem')}`,
+  footerLegal: 'Ikke et officielt Minecraft-produkt. Ikke godkendt af eller tilknyttet Mojang eller Microsoft.',
+};
+
+export const STRINGS = { en, da };

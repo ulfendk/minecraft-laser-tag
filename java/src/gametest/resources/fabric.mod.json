@@ -1,0 +1,15 @@
+{
+	"schemaVersion": 1,
+	"id": "lasertag-test",
+	"version": "1.0.0",
+	"name": "Laser Tag tests",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-gametest": [
+			"dk.ulfen.lasertag.test.LaserTagGameTests"
+		]
+	},
+	"depends": {
+		"lasertag": "*"
+	}
+}
