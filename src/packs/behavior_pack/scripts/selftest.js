@@ -114,7 +114,9 @@ async function selfTest() {
   blue.teleport({ x: 14.5, y: Y, z: 40.5 });
   red.teleport({ x: 10.5, y: Y, z: 40.5 });
   await later(3);
-  check(tag(red, blue) === 'tagged' && current().scores.red === 1, `the tag did not score (${JSON.stringify(current()?.scores)})`);
+  // The game's bots may already have scored: the tag must add one.
+  const before = current().scores.red;
+  check(tag(red, blue) === 'tagged' && current().scores.red === before + 1, `the tag did not score (${JSON.stringify(current()?.scores)})`);
   // The game's bots find each other and fire.
   gameBots[0].teleport({ x: 12.5, y: Y, z: 4.5 });
   gameBots[1].teleport({ x: 22.5, y: Y, z: 4.5 });

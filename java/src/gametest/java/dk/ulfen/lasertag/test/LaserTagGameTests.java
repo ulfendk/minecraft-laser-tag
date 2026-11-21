@@ -244,7 +244,9 @@ public class LaserTagGameTests {
 			Vec3 r = helper.absoluteVec(new Vec3(10.5, 1, 34.5));
 			blue.teleportTo(b.x, b.y, b.z);
 			red.teleportTo(r.x, r.y, r.z);
-			check(helper, "tagged".equals(Game.tag(red, blue)) && Game.current().scores.get("red") == 1, "the tag did not score: " + Game.current().scores);
+			// The game's bots may already have scored: the tag must add one.
+			int before = Game.current().scores.get("red");
+			check(helper, "tagged".equals(Game.tag(red, blue)) && Game.current().scores.get("red") == before + 1, "the tag did not score: " + Game.current().scores);
 			Vec3 g0 = helper.absoluteVec(new Vec3(12.5, 1, 6.5));
 			Vec3 g1 = helper.absoluteVec(new Vec3(22.5, 1, 6.5));
 			gameBots.get(0).teleportTo(g0.x, g0.y, g0.z);
