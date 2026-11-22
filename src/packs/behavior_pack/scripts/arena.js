@@ -1,8 +1,9 @@
 // The arena's game blocks. Each one ticks (minecraft:tick) and so tells the game
 // where it is: spawn pads (where teams start and come back), flag stands (take the
 // flag, bring it home), control points (who stands next to them) and power-up
-// stations (walk on when it glows); smoke machines pump haze in bursts. The Java twins are in dk.ulfen.lasertag.block.
-import { world } from '@minecraft/server';
+// stations (walk on when it glows); smoke machines pump haze in bursts, and a siren,
+// shot with a laser, puts the lights out and runs a strobe. The Java twins are in dk.ulfen.lasertag.block.
+import { system, world } from '@minecraft/server';
 import { BLOCKS, RULES } from './data.js';
 import { pickPowerup, touchStand } from './logic.js';
 import { current, givePowerup, handle, isActive, running } from './game.js';
@@ -13,7 +14,7 @@ const STATE = { flag: `${NS}:flag`, owner: `${NS}:owner`, charged: `${NS}:charge
 
 /** Every game block seen ticking: "dim x y z" -> { kind, team, dim, pos, seen }. */
 const blocks = new Map();
-const rechargeAt = new Map(); // station key -> tick
+const rechargeAt = new Map(); // station or siren key -> tick
 const keyOf = (dimension, p) => `${dimension.id} ${p.x} ${p.y} ${p.z}`;
 
 /** Entries of one kind, in one dimension, whose block is still there. */
@@ -73,7 +74,7 @@ export function showFlag(team, shown) {
   }
 }
 
-/** A new game: every flag on its stand, every point free, every station charged. */
+/** A new game: every flag on its stand, every point free, every station and siren charged. */
 export function resetArena() {
   rechargeAt.clear();
   for (const [, e] of blocks) {
@@ -82,7 +83,7 @@ export function resetArena() {
       if (!block || !KINDS[block.typeId]) continue;
       if (e.kind === 'flag') setState(block, STATE.flag, true);
       if (e.kind === 'point') setState(block, STATE.owner, 0);
-      if (e.kind === 'station') setState(block, STATE.charged, true);
+      if (e.kind === 'station' || e.kind === 'siren') setState(block, STATE.charged, true);
     } catch {}
   }
 }
@@ -180,6 +181,71 @@ export function toggleSmoke(block) {
   return on;
 }
 
+// ---------------------------------------------------------------- the siren
+
+/** The siren going off now: { dim, at, until }. */
+let alarm;
+export const alarming = () => !!alarm && alarm.until > now();
+
+/** Everyone within the siren's reach. */
+const inReach = (a) => world.getDimension(a.dim).getPlayers({ location: a.at, maxDistance: RULES.siren.radius });
+
+function tickSiren(block, key) {
+  if (block.permutation.getState(STATE.charged)) return;
+  if ((rechargeAt.get(key) ?? 0) <= now() && !alarming()) setState(block, STATE.charged, true);
+}
+
+/** A laser hit `block`: a charged siren goes off. True if it did. */
+export function soundSiren(block) {
+  if (KINDS[block.typeId]?.kind !== 'siren' || !block.permutation.getState(STATE.charged) || alarming()) return false;
+  setState(block, STATE.charged, false);
+  rechargeAt.set(keyOf(block.dimension, block.location), now() + RULES.siren.recharge * 20);
+  const ticks = RULES.siren.seconds * 20;
+  alarm = { dim: block.dimension.id, at: centre(block.location), block: { ...block.location }, start: now(), until: now() + ticks };
+  for (const p of inReach(alarm)) {
+    try {
+      // The lights go out.
+      p.addEffect('darkness', ticks + 20, { showParticles: false });
+      p.onScreenDisplay.setActionBar({ translate: `${NS}.siren` });
+    } catch {}
+  }
+  const run = system.runInterval(() => {
+    const a = alarm;
+    if (!a || !alarming()) {
+      system.clearRun(run);
+      if (a) for (const p of inReach(a)) {
+        try {
+          p.removeEffect('darkness');
+          p.removeEffect('night_vision');
+        } catch {}
+      }
+      alarm = undefined;
+      return;
+    }
+    const t = now() - a.start;
+    const dimension = world.getDimension(a.dim);
+    // The wail, twice over.
+    if (t % 100 === 0) {
+      try {
+        dimension.playSound('raid.horn', a.at, { volume: 4 });
+      } catch {}
+    }
+    // The strobe: a flash of light every few ticks, for a tick or two.
+    if (t % RULES.siren.flash !== 0) return;
+    for (const p of inReach(a)) {
+      try {
+        p.addEffect('night_vision', 2, { showParticles: false });
+      } catch {}
+    }
+    const lamp = { x: a.at.x, y: a.block.y + 1.3, z: a.at.z };
+    for (let i = 0; i < 6; i++) {
+      const ang = (t / 3 + i) * (Math.PI / 3);
+      particle(dimension, i % 2 ? 'laser_white' : 'laser_red', { x: lamp.x + Math.cos(ang) * 1.2, y: lamp.y, z: lamp.z + Math.sin(ang) * 1.2 });
+    }
+  }, 1);
+  return true;
+}
+
 function tick(block) {
   const info = KINDS[block.typeId];
   if (!info) return;
@@ -190,6 +256,7 @@ function tick(block) {
   else if (info.kind === 'point') tickPoint(block, key);
   else if (info.kind === 'station') tickStation(block, key);
   else if (info.kind === 'smoke') tickSmoke(block);
+  else if (info.kind === 'siren') tickSiren(block, key);
 }
 
 export function registerArena(registry) {
@@ -202,7 +269,7 @@ export function registerArena(registry) {
   });
 }
 
-/** For the selftest: a station that is empty now recharges at once. */
+/** For the selftest: a station or siren that is empty now recharges at once. */
 export function rechargeNow(block) {
   rechargeAt.set(keyOf(block.dimension, block.location), 0);
 }

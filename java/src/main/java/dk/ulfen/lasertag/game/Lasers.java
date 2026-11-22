@@ -47,7 +47,10 @@ public final class Lasers {
 		level.sendParticles(new DustParticleOptions(colour(team), 1.0F), e.getX(), e.getY() + 1.1, e.getZ(), 14, 0.3, 0.3, 0.3, 0.1);
 	}
 
-	/** Fire one ray: draw it and tag what it hits. Returns "tagged", "shield", "blocked" or null (nothing hit). */
+	/**
+	 * Fire one ray: draw it and tag what it hits, or set off a siren (when a player fired).
+	 * Returns "tagged", "shield", "blocked", "siren" or null (nothing hit).
+	 */
 	public static @Nullable String fireRay(LivingEntity shooter, Vec3 from, Vec3 dir, double range) {
 		if (!(shooter.level() instanceof ServerLevel level)) return null;
 		Vec3 to = from.add(dir.scale(range));
@@ -64,7 +67,10 @@ public final class Lasers {
 			}
 		}
 		beam(level, from, dir, best != null ? bestD : wall, Game.teamOf(shooter));
-		if (best == null) return null;
+		if (best == null) {
+			boolean siren = block.getType() == HitResult.Type.BLOCK && shooter instanceof Player && Arena.soundSiren(level, block.getBlockPos());
+			return siren ? "siren" : null;
+		}
 		String result = Game.tag(shooter, best);
 		return result != null ? result : "blocked";
 	}

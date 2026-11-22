@@ -4,7 +4,7 @@ Laser tag for Minecraft – a **Bedrock add-on** and a **Java Edition mod (Fabri
 
 - **Four game modes**: Team Deathmatch, Free-for-all, Capture the Flag, and King of the Hill / Domination.
 - **A game console** runs each game, with a countdown, scores, a timer and a heat bar.
-- **Arena blocks**: flag stands, control points, power-up stations and smoke machines.
+- **Arena blocks**: flag stands, control points, power-up stations, smoke machines and sirens.
 - **Lasers never hurt**: a tag only puts you out for a few seconds.
 
 **Website (English and Danish):** https://ulfendk.github.io/minecraft-laser-tag/ · part of [all our mods](https://ulfendk.github.io/minecraft-index/)
@@ -32,6 +32,7 @@ Laser tag for Minecraft – a **Bedrock add-on** and a **Java Edition mod (Fabri
   - **King of the Hill**: one control point. With several points it plays as Domination. Each point held scores 1 a second; first to 120.
 - **Power-up stations**: rapid fire (no overheating), a shield (takes one hit), speed, and double points. A station recharges in 30 s.
 - **Smoke machines**: fill the arena with haze, like a real laser tag arena: 4 s of smoke, then 8 s of rest, all machines on the same beat. Use one to switch it on or off.
+- **Sirens**: shoot one with your laser and it wails, the lights go out for everyone within 48 blocks and a strobe flashes for 10 seconds. Then it needs 3 minutes to recharge. Only players' lasers set it off.
 - **Laser bots**: they hunt anyone in another team's vest and the other teams' bots. Only a player's hand can hurt them.
 - **Building blocks**: neon panels in seven colours, cover crates, black-light floor and a scoreboard screen.
 - **Commands**:

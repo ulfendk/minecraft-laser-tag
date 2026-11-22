@@ -7,7 +7,7 @@
 // PASS or FAIL when it is done.
 import { BlockPermutation, ItemStack, system, world } from '@minecraft/server';
 import { BLOCKS, CREATURES, ITEMS, RULES } from './data.js';
-import { padsOf, toggleSmoke } from './arena.js';
+import { alarming, padsOf, soundSiren, toggleSmoke } from './arena.js';
 import { counts, joinTeam } from './bots.js';
 import { current, givePowerup, isDown, isProtected, startGame, stopGame, tag } from './game.js';
 import { fireRay, pulse } from './guns.js';
@@ -66,6 +66,11 @@ async function selfTest() {
   place('smoke_machine', 20, 30);
   const smoke = dim.getBlock({ x: 20, y: Y, z: 30 });
   check(smoke.permutation.getState(`${NS}:on`) === true && !toggleSmoke(smoke) && toggleSmoke(smoke), 'the smoke machine did not switch');
+  // The siren goes off once, then recharges.
+  place('siren', 24, 30);
+  const siren = dim.getBlock({ x: 24, y: Y, z: 30 });
+  check(siren.permutation.getState(`${NS}:charged`) === true && soundSiren(siren) && alarming(), 'the siren did not go off');
+  check(siren.permutation.getState(`${NS}:charged`) === false && !soundSiren(siren), 'the siren went off twice');
 
   // Two bots that stand still: red shoots blue.
   const bot = (team, x, z) => {
@@ -108,6 +113,8 @@ async function selfTest() {
   // The pulse grenade.
   check(pulse(dim, blue.location, red) === 1 && isDown(blue), 'the pulse grenade did not tag');
   await later(DOWN + PROTECT + 10);
+
+  check(!alarming() && siren.permutation.getState(`${NS}:charged`) === false, 'the siren did not stop, or it recharged too soon');
 
   // Team deathmatch with hard bots, two on red and one on blue, that fire by themselves.
   check(startGame({ mode: 'team_deathmatch', minutes: 3, bots: { red: 2, blue: 1 }, skill: 'hard', teams: 2 }, { dimension: dim, location: { x: 16, y: Y, z: 12 } }), 'the game did not start');

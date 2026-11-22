@@ -78,6 +78,11 @@ export const RULES = {
   // machines keep the same beat. `puffs` clouds every half second, drifting up to `drift`.
   smoke: { burst: 4, pause: 8, puffs: 3, drift: 0.08 },
 
+  // A siren goes off when a player's laser hits it: for `seconds` the lights go out for
+  // everyone within `radius` blocks and a strobe flashes every `flash` ticks. Then it
+  // needs `recharge` seconds before it can go off again.
+  siren: { seconds: 10, recharge: 180, radius: 48, flash: 4 },
+
   bot: {
     health: 20,
     sight: 32,

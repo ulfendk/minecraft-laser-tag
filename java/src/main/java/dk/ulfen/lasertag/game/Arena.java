@@ -11,8 +11,10 @@ import dk.ulfen.lasertag.block.ArenaBlock;
 import dk.ulfen.lasertag.block.ControlPointBlock;
 import dk.ulfen.lasertag.block.FlagStandBlock;
 import dk.ulfen.lasertag.block.PowerStationBlock;
+import dk.ulfen.lasertag.block.SirenBlock;
 import dk.ulfen.lasertag.block.SmokeMachineBlock;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ColorParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceKey;
@@ -21,6 +23,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -31,8 +35,8 @@ import org.jspecify.annotations.Nullable;
 /**
  * The arena's game blocks, as they tick: spawn pads (where teams start and come back),
  * flag stands (take the flag, bring it home), control points (who stands next to
- * them), power-up stations (walk on while it glows) and smoke machines (haze in
- * bursts). The twin of scripts/arena.js.
+ * them), power-up stations (walk on while it glows), smoke machines (haze in
+ * bursts) and sirens (shot with a laser: lights out and a strobe). The twin of scripts/arena.js.
  */
 public final class Arena {
 	private record Entry(String kind, @Nullable String team, ResourceKey<Level> dim, BlockPos pos, long seen) {}
@@ -107,7 +111,7 @@ public final class Arena {
 		}
 	}
 
-	/** A new game: every flag on its stand, every point free, every station charged. */
+	/** A new game: every flag on its stand, every point free, every station and siren charged. */
 	public static void reset(MinecraftServer server) {
 		RECHARGE_AT.clear();
 		for (Entry e : BLOCKS.values()) {
@@ -117,6 +121,7 @@ public final class Arena {
 			if (state.hasProperty(FlagStandBlock.FLAG)) state = state.setValue(FlagStandBlock.FLAG, true);
 			if (state.hasProperty(ControlPointBlock.OWNER)) state = state.setValue(ControlPointBlock.OWNER, 0);
 			if (state.hasProperty(PowerStationBlock.CHARGED)) state = state.setValue(PowerStationBlock.CHARGED, true);
+			if (state.hasProperty(SirenBlock.CHARGED)) state = state.setValue(SirenBlock.CHARGED, true);
 			level.setBlockAndUpdate(e.pos(), state);
 		}
 	}
@@ -193,8 +198,70 @@ public final class Arena {
 					level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, top.x, top.y + 0.2, top.z, 0, Math.cos(a) * v, 0.01, Math.sin(a) * v, 1.0);
 				}
 			}
+			case "siren" -> {
+				if (!state.getValue(SirenBlock.CHARGED) && RECHARGE_AT.getOrDefault(key, 0L) <= now && !alarming()) set(level, pos, state, state.setValue(SirenBlock.CHARGED, true));
+			}
 			default -> {}
 		}
+	}
+
+	// ---------------------------------------------------------------- the siren
+
+	/** The siren going off now. */
+	private record Alarm(ResourceKey<Level> dim, BlockPos pos, long start, long until) {}
+
+	private static @Nullable Alarm alarm;
+
+	public static boolean alarming() {
+		return alarm != null;
+	}
+
+	private static List<ServerPlayer> inReach(ServerLevel level, BlockPos pos) {
+		double r = R().siren().radius();
+		return level.getPlayers(p -> p.distanceToSqr(Vec3.atCenterOf(pos)) <= r * r);
+	}
+
+	/** A laser hit the block at `pos`: a charged siren goes off. True if it did. */
+	public static boolean soundSiren(ServerLevel level, BlockPos pos) {
+		BlockState state = level.getBlockState(pos);
+		if (!state.hasProperty(SirenBlock.CHARGED) || !state.getValue(SirenBlock.CHARGED) || alarming()) return false;
+		long now = level.getServer().getTickCount();
+		int ticks = R().siren().seconds() * 20;
+		level.setBlockAndUpdate(pos, state.setValue(SirenBlock.CHARGED, false));
+		RECHARGE_AT.put(key(level, pos), now + R().siren().recharge() * 20L);
+		alarm = new Alarm(level.dimension(), pos.immutable(), now, now + ticks);
+		for (ServerPlayer p : inReach(level, pos)) {
+			// The lights go out.
+			p.addEffect(new MobEffectInstance(MobEffects.DARKNESS, ticks + 20, 0, false, false));
+			p.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("lasertag.siren"));
+		}
+		return true;
+	}
+
+	/** Every server tick: the wail and the strobe of a siren going off, and lights on again after. */
+	public static void tickAlarm(MinecraftServer server) {
+		Alarm a = alarm;
+		if (a == null) return;
+		ServerLevel level = server.getLevel(a.dim());
+		long now = server.getTickCount();
+		if (level == null || now >= a.until()) {
+			alarm = null;
+			if (level != null) for (ServerPlayer p : inReach(level, a.pos())) {
+				p.removeEffect(MobEffects.DARKNESS);
+				p.removeEffect(MobEffects.NIGHT_VISION);
+			}
+			return;
+		}
+		long t = now - a.start();
+		// The wail, twice over.
+		if (t % 100 == 0) level.playSound(null, a.pos(), SoundEvents.RAID_HORN.value(), SoundSource.BLOCKS, 4.0F, 1.0F);
+		// The strobe: a flash of light every few ticks, for a tick or two.
+		if (t % R().siren().flash() != 0) return;
+		Vec3 lamp = Vec3.atCenterOf(a.pos()).add(0, 0.8, 0);
+		for (ServerPlayer p : inReach(level, a.pos())) {
+			p.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 2, 0, false, false));
+		}
+		level.sendParticles(ColorParticleOption.create(ParticleTypes.FLASH, (t / R().siren().flash()) % 2 == 0 ? 0xFFFF2020 : 0xFFFFFFFF), lamp.x, lamp.y, lamp.z, 1, 0, 0, 0, 0);
 	}
 
 	/** Is it time for haze? All machines pump together: a burst, then a rest. */

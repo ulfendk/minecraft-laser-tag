@@ -13,6 +13,7 @@ import dk.ulfen.lasertag.LaserData;
 import dk.ulfen.lasertag.LaserRegistry;
 import dk.ulfen.lasertag.block.ControlPointBlock;
 import dk.ulfen.lasertag.block.FlagStandBlock;
+import dk.ulfen.lasertag.block.SirenBlock;
 import dk.ulfen.lasertag.block.SmokeMachineBlock;
 import dk.ulfen.lasertag.entity.LaserBot;
 import dk.ulfen.lasertag.game.Arena;
@@ -204,6 +205,7 @@ public class LaserTagGameTests {
 		helper.setBlock(new BlockPos(16, 1, 20), LaserRegistry.CONTROL_POINT);
 		helper.setBlock(new BlockPos(16, 1, 30), LaserRegistry.POWER_STATION);
 		helper.setBlock(new BlockPos(20, 1, 30), LaserRegistry.SMOKE_MACHINE);
+		helper.setBlock(new BlockPos(24, 1, 30), LaserRegistry.SIREN);
 		LaserBot red = bot(helper, "red", 10.5, 34.5);
 		LaserBot blue = bot(helper, "blue", 14.5, 34.5);
 		LaserBot red2 = bot(helper, "red", 12.5, 30.5);
@@ -220,8 +222,14 @@ public class LaserTagGameTests {
 			check(helper, Game.tag(red, red2) == null, "a bot tagged its own team");
 			// A tagged player is frozen: nothing to throw or use, and what they drop comes back.
 			ServerPlayer kid = helper.makeMockServerPlayerInLevel();
-			Vec3 k = helper.absoluteVec(new Vec3(6.5, 1, 40.5));
+			Vec3 k = helper.absoluteVec(new Vec3(24.5, 1, 25.5));
 			kid.snapTo(k.x, k.y, k.z);
+			// A player shoots the siren: it goes off once, then recharges.
+			BlockPos siren = helper.absolutePos(new BlockPos(24, 1, 30));
+			Vec3 lamp = Vec3.atCenterOf(siren);
+			String shot = Lasers.fireRay(kid, kid.getEyePosition(), lamp.subtract(kid.getEyePosition()).normalize(), 40);
+			check(helper, "siren".equals(shot) && Arena.alarming(), "the siren did not go off: " + shot);
+			check(helper, !level.getBlockState(siren).getValue(SirenBlock.CHARGED) && !Arena.soundSiren(level, siren), "the siren went off twice");
 			kid.setItemSlot(EquipmentSlot.CHEST, new ItemStack(LaserRegistry.VESTS.get("blue")));
 			kid.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.SNOWBALL, 4));
 			check(helper, "tagged".equals(Game.tag(red, kid)) && Game.isDown(kid), "the player was not tagged");
@@ -259,6 +267,8 @@ public class LaserTagGameTests {
 			check(helper, Lasers.pulse(level, blue.position(), red) == 1 && Game.isDown(blue), "the pulse grenade did not tag");
 		});
 		t += down + protect + 10;
+
+		helper.runAfterDelay(t, () -> check(helper, !Arena.alarming(), "the siren did not stop"));
 
 		// Team deathmatch with hard bots, two on red and one on blue, that fire by themselves.
 		helper.runAfterDelay(t, () -> {

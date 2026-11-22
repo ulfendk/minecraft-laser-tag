@@ -1,12 +1,12 @@
 // Blocks: the game console, the arena's game blocks (spawn pads, flag stands, a
-// control point, a power-up station, a smoke machine) and neon building blocks. Every block is a
+// control point, a power-up station, a smoke machine, a siren) and neon building blocks. Every block is a
 // full cube, with its own top where it has one; textures come from src/art.mjs.
 // A block with a `state` looks different for each value of it (the flag on its
-// stand or taken, who holds a control point, a charged power-up station, a smoke
-// machine on or off).
+// stand or taken, who holds a control point, a charged power-up station or siren, a
+// smoke machine on or off).
 // Names are [English, Danish].
 import { NS } from './lib/constants.mjs';
-import { BLOCK_TEXTURES, FLAG, NEON, NEON_TEXTURE, PAD, POINT, SMOKE, STATION } from './art.mjs';
+import { BLOCK_TEXTURES, FLAG, NEON, NEON_TEXTURE, PAD, POINT, SIREN, SMOKE, STATION } from './art.mjs';
 import { TEAM_NAMES, shaped } from './items.mjs';
 import { TEAMS } from './rules.mjs';
 
@@ -60,6 +60,12 @@ export const BLOCKS = [
     state: { name: 'on', values: [true, false] },
     looks: (on) => ({ side: SMOKE.side(on), top: SMOKE.top(on) }),
   },
+  {
+    // Shoot it: the lights go out and a strobe flashes. Charged (lamp lit) or recharging.
+    id: 'siren', name: ['Siren', 'Sirene'], ...metal, light: 8, map: '#ff3b3b', kind: 'siren', component: 'arena', tick: 10,
+    state: { name: 'charged', values: [true, false] },
+    looks: (charged) => ({ side: SIREN.side(charged), top: SIREN.top(charged) }),
+  },
   { id: 'scoreboard_screen', name: ['Scoreboard Screen', 'Resultattavle'], faces: BLOCK_TEXTURES.scoreboard_screen, ...metal, light: 10, map: '#0b0f2a' },
   ...Object.entries(NEON).map(([colour, hexColour]) => ({
     id: `neon_panel_${colour}`, name: NEON_NAMES[colour], faces: { side: NEON_TEXTURE(hexColour) }, hardness: 0.8, sound: 'glass', light: 15, map: hexColour,
@@ -76,6 +82,7 @@ export const BLOCK_RECIPES = [
   shaped('control_point', ['GLG', 'RIR', 'III'], { G, L, R, I }),
   shaped('power_station', ['ALA', 'RIR', 'III'], { A: 'amethyst_shard', L, R, I }),
   shaped('smoke_machine', ['IBI', 'RCR', 'III'], { I, B: 'iron_bars', R, C: 'campfire' }),
+  shaped('siren', ['GLG', 'RNR', 'III'], { G: 'red_stained_glass', L, R, N: 'bell', I }),
   shaped('scoreboard_screen', ['GGG', 'GRG', 'III'], { G, R, I }),
   ...Object.keys(NEON).map((c) => shaped(`neon_panel_${c}`, ['GDG', 'DLD', 'GDG'], { G, D: DYES[c], L }, 8)),
   shaped('cover_crate', ['NPN', 'PCP', 'NPN'], { N: 'iron_nugget', P: 'oak_planks', C: 'cyan_dye' }, 4),

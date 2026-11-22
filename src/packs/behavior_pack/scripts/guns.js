@@ -6,6 +6,7 @@ import { system, world } from '@minecraft/server';
 import { RULES } from './data.js';
 import { shotHeat } from './logic.js';
 import { cannotFire, flash, hasPowerup, heatOf, recordShot, setHeat, tag } from './game.js';
+import { soundSiren } from './arena.js';
 import { add, dist, heldItem, isBot, isPlayer, NS, scale, sound, spread, teamOf } from './util.js';
 
 const GUNS = Object.fromEntries(Object.entries(RULES.guns).map(([id, g]) => [`${NS}:${id}`, { id, ...g }]));
@@ -27,13 +28,13 @@ function firstTarget(dimension, from, direction, max, shooter) {
   return undefined;
 }
 
-/** How far a ray gets before it hits a block (`range` if it hits nothing). */
-function blockDistance(dimension, from, direction, range) {
+/** How far a ray gets before it hits a block (`range` if it hits nothing), and the block. */
+function blockHit(dimension, from, direction, range) {
   try {
     const hit = dimension.getBlockFromRay(from, direction, { maxDistance: range, includeLiquidBlocks: false, includePassableBlocks: false });
-    if (hit) return dist(from, add(hit.block.location, hit.faceLocation));
+    if (hit) return { distance: dist(from, add(hit.block.location, hit.faceLocation)), block: hit.block };
   } catch {}
-  return range;
+  return { distance: range };
 }
 
 /** A beam of particles from `from` along `direction` for `length` blocks. */
@@ -51,15 +52,16 @@ export function beam(dimension, from, direction, length, team) {
 
 /**
  * Fire one ray from `from` along `direction` for `shooter`: draw it, and tag what it
- * hits. Returns 'tagged', 'shield', 'blocked' or false.
+ * hits: a player or bot, or a siren (when a player fired). Returns 'tagged', 'shield',
+ * 'blocked', 'siren' or false.
  */
 export function fireRay(shooter, from, direction, range) {
   const dimension = shooter.dimension;
-  const wall = blockDistance(dimension, from, direction, range);
+  const { distance: wall, block } = blockHit(dimension, from, direction, range);
   const hit = firstTarget(dimension, from, direction, wall, shooter);
   const length = hit ? hit.distance : wall;
   beam(dimension, from, direction, length, teamOf(shooter));
-  if (!hit) return false;
+  if (!hit) return block && isPlayer(shooter) && soundSiren(block) ? 'siren' : false;
   return tag(shooter, hit.entity) || 'blocked';
 }
 

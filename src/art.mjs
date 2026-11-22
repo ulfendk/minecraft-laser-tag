@@ -218,6 +218,23 @@ const smokeTop = (on) => encode(canvas(16, 16, (x, y) => {
   return panel(x, y, 16);
 }));
 
+/** The siren: a red rotating lamp over a hazard-striped base, lit when it is charged. */
+const sirenSide = (charged) => encode(canvas(16, 16, (x, y) => {
+  if (y >= 12) return ((x + y) >> 1) % 2 ? hex('#f5c400') : hex(C.outline);
+  if (y === 11 || x === 0 || x === 15 || y === 0) return hex(C.mid);
+  const d = Math.hypot(x - 7.5, (y - 6) * 1.2);
+  if (d <= 5.5) {
+    const lens = charged ? mix(hex('#ffd0d0'), hex('#ff2020'), d / 5.5) : mix(hex('#5a1e1e'), hex('#2a1010'), d / 5.5);
+    return x === 7 || x === 8 ? mix(lens, hex('#ffffff'), charged ? 0.35 : 0.05) : lens;
+  }
+  return panel(x, y, 17);
+}));
+const sirenTop = (charged) => encode(canvas(16, 16, (x, y) => {
+  const d = Math.hypot(x - 7.5, y - 7.5);
+  if (d <= 5.5) return charged ? mix(hex('#ffe0e0'), hex('#ff2020'), d / 5.5) : mix(hex('#5a1e1e'), hex('#2a1010'), d / 5.5);
+  return panel(x, y, 18, C.panelLight);
+}));
+
 /** Game console: a screen with a scoreboard on it and a row of buttons. */
 const consoleFront = () => encode(canvas(16, 16, (x, y) => {
   if (edge(x, y)) return hex(C.mid);
@@ -280,6 +297,7 @@ export const FLAG = { side: flagSide, top: flagTop };
 export const POINT = { side: pointSide, top: pointTop };
 export const STATION = { side: stationSide, top: stationTop };
 export const SMOKE = { side: smokeSide, top: smokeTop };
+export const SIREN = { side: sirenSide, top: sirenTop };
 export const NEON_TEXTURE = neon;
 
 /** The vests as worn, in the vanilla 64x32 armour layout: dark straps with glowing pads. */

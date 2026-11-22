@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.0] - 2026-11-22
+
+### Added
+- Siren: shoot it with your laser and it wails, the lights go out for everyone within 48 blocks and a strobe flashes for 10 seconds. Then its lamp goes dark and it needs 3 minutes to recharge. Only a player's laser sets it off, not the bots'. Crafted from red stained glass, glowstone, redstone, a bell and iron.
+
 ## [0.4.1] - 2026-11-22
 
 ### Fixed

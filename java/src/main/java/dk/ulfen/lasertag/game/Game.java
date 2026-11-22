@@ -627,6 +627,7 @@ public final class Game {
 	}
 
 	private static void tick(MinecraftServer srv) {
+		Arena.tickAlarm(srv);
 		server = srv;
 		long t = now();
 		for (var e : List.copyOf(DOWN_UNTIL.entrySet())) {
