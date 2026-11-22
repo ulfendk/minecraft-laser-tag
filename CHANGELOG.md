@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.1] - 2026-11-22
+
+### Fixed
+- Bedrock: the laser guns fire again. Since 0.4.1 the check that keeps tagged players from throwing things made every shot look like it came too soon after the last one, so the guns did nothing; the pulse grenade still worked. The time between shots is now kept by the add-on itself.
+
 ## [0.5.0] - 2026-11-22
 
 ### Added

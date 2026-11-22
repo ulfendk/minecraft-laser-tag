@@ -7,7 +7,7 @@ import { RULES } from './data.js';
 import { shotHeat } from './logic.js';
 import { cannotFire, flash, hasPowerup, heatOf, recordShot, setHeat, tag } from './game.js';
 import { soundSiren } from './arena.js';
-import { add, dist, heldItem, isBot, isPlayer, NS, scale, sound, spread, teamOf } from './util.js';
+import { add, dist, heldItem, isBot, isPlayer, now, NS, scale, sound, spread, teamOf } from './util.js';
 
 const GUNS = Object.fromEntries(Object.entries(RULES.guns).map(([id, g]) => [`${NS}:${id}`, { id, ...g }]));
 const GRENADE = `${NS}:${RULES.grenade.id}`;
@@ -68,11 +68,19 @@ export function fireRay(shooter, from, direction, range) {
 /** Where a gun's shots start: from the eyes, a little forward. */
 export const muzzle = (entity) => entity.getHeadLocation();
 
-/** A player pulls the trigger of `gun` (`item`: the gun in their hand, for its cooldown). */
+/** Player id -> the tick each gun of theirs can fire again. */
+const nextShot = new Map();
+
+/**
+ * A player pulls the trigger of `gun` (`item`: the gun in their hand, for its cooldown bar).
+ * The time between shots is kept here, not read from the item: once anything has looked
+ * at the use first (the frozen check in game.js), Bedrock has already started the item's
+ * own cooldown by the time this runs, and every shot would look too soon.
+ */
 export function fire(player, gunId, item) {
   const g = RULES.guns[gunId];
-  const cooldown = item?.getComponent('minecraft:cooldown');
-  if (cooldown && cooldown.getCooldownTicksRemaining(player) > 0) return false;
+  const key = `${player.id} ${gunId}`;
+  if ((nextShot.get(key) ?? 0) > now()) return false;
   const why = cannotFire(player);
   if (why) {
     if (why !== 'down') {
@@ -86,7 +94,10 @@ export function fire(player, gunId, item) {
     player.playSound('random.fizz', { pitch: 1.6, volume: 0.6 });
     return false;
   }
-  cooldown?.startCooldown(player);
+  nextShot.set(key, now() + Math.round(g.cooldown * 20) - 1);
+  try {
+    item?.getComponent('minecraft:cooldown')?.startCooldown(player);
+  } catch {}
   const after = shotHeat(h, gunId, hasPowerup(player, 'rapid_fire'));
   setHeat(player, after);
   if (after.overheated) player.playSound('random.fizz', { pitch: 1.2 });

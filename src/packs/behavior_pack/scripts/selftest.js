@@ -10,7 +10,7 @@ import { BLOCKS, CREATURES, ITEMS, RULES } from './data.js';
 import { alarming, padsOf, soundSiren, toggleSmoke } from './arena.js';
 import { counts, joinTeam } from './bots.js';
 import { current, givePowerup, isDown, isProtected, startGame, stopGame, tag } from './game.js';
-import { fireRay, pulse } from './guns.js';
+import { fire, fireRay, pulse } from './guns.js';
 import { BOT, dist, DOWN_TAG, GAME_BOT_TAG, LOG, nameOf, norm, NS, SIGN, sub, teamOf } from './util.js';
 
 const later = (ticks) => new Promise((resolve) => system.runTimeout(resolve, ticks));
@@ -98,6 +98,11 @@ async function selfTest() {
   check(dist(blue.location, { x: 30.5, y: Y + 1, z: 2.5 }) < 1.5, `the tagged bot did not come back on its spawn pad (${JSON.stringify(blue.location)})`);
   check(isProtected(blue) && !tag(red, blue), 'a bot just back could be tagged');
   await later(PROTECT + 5);
+
+  // A gun fires once per click, then waits its cooldown out.
+  check(fire(red2, 'laser_rifle') && !fire(red2, 'laser_rifle'), 'a gun did not fire, or fired again at once');
+  await later(Math.round(RULES.guns.laser_rifle.cooldown * 20) + 1);
+  check(fire(red2, 'laser_rifle'), 'a gun did not fire again after its cooldown');
 
   // A wall stops a laser.
   blue.teleport({ x: 14.5, y: Y, z: 44.5 });
