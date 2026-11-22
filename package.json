@@ -12,7 +12,8 @@
     "test": "node --test test/*.test.mjs",
     "all": "npm run build && npm run validate && npm test && npm run package",
     "site": "node tools/site.mjs",
-    "test:server": "tools/bds-test.sh"
+    "test:server": "tools/bds-test.sh",
+    "test:player": "tools/bds-player.sh"
   },
   "engines": {
     "node": ">=22"

@@ -56,6 +56,7 @@ npm run all          # build + validate + unit tests + package (dist/*.mcaddon, 
 npm run preview      # renders the bot, items and blocks to build/preview/
 npm run site         # builds the website into build/site/
 npm run test:server  # Bedrock Dedicated Server test: the script selftest plays games with bots (Docker)
+npm run test:player  # Bedrock: simulated players put on vests and fire every gun (Docker, Beta APIs in a test world)
 cd java && ./gradlew build runGameTest   # Java mod + game tests (after npm run build)
 ```
 
