@@ -342,11 +342,18 @@ public final class Game {
 		return null;
 	}
 
-	/** Start a game at the console at `pos`. False if one is on already. */
+	/** Start a game at the console at `pos`, with `bots` on every team and normal bots. False if one is on already. */
 	public static boolean start(ServerLevel level, BlockPos pos, String mode, int minutes, int scoreLimit, int teams, int bots, @Nullable ServerPlayer starter) {
+		return start(level, pos, mode, minutes, scoreLimit, teams, GameLogic.everyTeam(bots), null, starter);
+	}
+
+	/** Start a game at the console at `pos`: `bots` per team, `skill` theirs. False if one is on already. */
+	public static boolean start(ServerLevel level, BlockPos pos, String mode, int minutes, int scoreLimit, int teams, Map<String, Integer> bots,
+			@Nullable String skill, @Nullable ServerPlayer starter) {
 		if (game != null && !game.phase.equals("over")) return false;
 		server = level.getServer();
 		game = GameLogic.newGame(mode, minutes, scoreLimit, teams);
+		game.skill = GameLogic.botSkill(skill);
 		game.dim = level.dimension().identifier().toString();
 		game.x = pos.getX();
 		game.y = pos.getY();
@@ -383,8 +390,8 @@ public final class Game {
 		return true;
 	}
 
-	private static void spawnGameBots(ServerLevel level, BlockPos at, int perTeam) {
-		List<String> teams = GameLogic.botTeams(game, perTeam);
+	private static void spawnGameBots(ServerLevel level, BlockPos at, Map<String, Integer> bots) {
+		List<String> teams = GameLogic.botTeams(game, bots);
 		Map<String, Integer> n = new HashMap<>();
 		for (int i = 0; i < teams.size(); i++) {
 			String team = teams.get(i);

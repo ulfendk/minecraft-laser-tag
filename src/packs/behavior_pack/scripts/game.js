@@ -5,7 +5,7 @@
 import { DisplaySlotId, InputPermissionCategory, system, world } from '@minecraft/server';
 import { RULES } from './data.js';
 import {
-  accuracy, carrying, clockText, cool, enemies, heatBar, mvp, newGame, onShot, onTag, second, standings, stop, teamMode, touchDropped,
+  accuracy, botSkill, carrying, clockText, cool, enemies, heatBar, mvp, newGame, onShot, onTag, second, standings, stop, teamMode, touchDropped,
 } from './logic.js';
 import { padsOf, pointCounts, resetArena, showFlag } from './arena.js';
 import { spawnGameBots, removeGameBots } from './bots.js';
@@ -217,12 +217,14 @@ const findByName = (who) => {
 };
 
 /**
- * Start a game. `settings`: mode, minutes, scoreLimit, teams, bots (per team).
+ * Start a game. `settings`: mode, minutes, scoreLimit, teams, bots (one number for every
+ * team, or { red: 2, blue: 1 }) and skill (the bots': easy, normal or hard).
  * `at`: { dimension, location } of the console. False if one is on already.
  */
 export function startGame(settings, at, starter) {
   if (game && game.phase !== 'over') return false;
   game = newGame(settings);
+  game.skill = botSkill(settings.skill);
   game.origin = { dim: at.dimension.id, x: at.location.x, y: at.location.y, z: at.location.z };
   clearAt = 0;
   for (const id of downUntil.keys()) {
@@ -527,17 +529,21 @@ export function setupGame() {
   world.afterEvents.playerLeave.subscribe(({ playerName }) => {
     if (running()) handle(dropFlagsOf(playerName));
   });
-  // Commands for game hosts: /scriptevent lasertag:start [mode] [minutes] [bots per team] [teams], /scriptevent lasertag:stop
+  // Commands for game hosts: /scriptevent lasertag:stop, and
+  // /scriptevent lasertag:start [mode] [minutes] [bots] [teams] [skill], where bots is one
+  // number for every team or one per team in team order (2,2 or 2,2,1,0).
   system.afterEvents.scriptEventReceive.subscribe((event) => {
     if (event.id === `${NS}:start`) {
-      const [mode, minutes, bots, teams] = (event.message ?? '').trim().split(/\s+/);
+      const [mode, minutes, bots = '0', teams, skill] = (event.message ?? '').trim().split(/\s+/);
+      const each = bots.split(',');
       const source = event.sourceEntity ?? world.getAllPlayers()[0];
       const at = source ? { dimension: source.dimension, location: source.location } : { dimension: world.getDimension('overworld'), location: { x: 0, y: 0, z: 0 } };
       startGame({
         mode: RULES.modes[mode] ? mode : 'team_deathmatch',
         minutes: Number(minutes) || RULES.console.startMinutes,
-        bots: Math.min(RULES.console.botsPerTeam, Number(bots) || 0),
+        bots: each.length > 1 ? Object.fromEntries(RULES.teams.map((t, i) => [t, Number(each[i]) || 0])) : Number(bots) || 0,
         teams: Number(teams) || 2,
+        skill,
       }, at, isPlayer(source) ? source : undefined);
     } else if (event.id === `${NS}:stop`) stopGame();
   });

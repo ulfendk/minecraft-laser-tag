@@ -162,6 +162,12 @@ test('stats, MVP, power-ups, bots and the clock text', () => {
   assert.equal(G.accuracy(g.stats.a), 50);
   assert.equal(G.mvp(g), 'a');
   assert.deepEqual(G.botTeams(g, 2), ['red', 'blue', 'green', 'red', 'blue', 'green']);
+  // Two kids a side, and two bots on each team; or bots only where they are wanted.
+  assert.deepEqual(G.botTeams(g, { red: 2, blue: 2 }), ['red', 'blue', 'red', 'blue']);
+  assert.deepEqual(G.botTeams(g, { red: 1, blue: 3, yellow: 4 }), ['red', 'blue', 'blue', 'blue']);
+  assert.deepEqual(G.botCounts(g, { red: 9, green: -1 }), { red: 4, blue: 0, green: 0 });
+  assert.equal(G.botSkill('hard'), 'hard');
+  assert.equal(G.botSkill('nope'), 'normal');
   assert.equal(G.pickPowerup(0), 'rapid_fire');
   assert.equal(G.pickPowerup(0.999), 'double_points');
   assert.equal(G.clockText(125), '2:05');

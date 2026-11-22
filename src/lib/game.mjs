@@ -315,12 +315,25 @@ export function pickPowerup(r) {
   return kinds[Math.min(kinds.length - 1, Math.floor(r * kinds.length))];
 }
 
-/** The team of each bot the console brings into a game: `perTeam` on every team, taking turns. */
-export function botTeams(game, perTeam) {
+/**
+ * How many bots the console brings onto each team in the game: `bots` is one number for
+ * every team, or a number per team ({ red: 2, blue: 1 }); at most RULES.console.botsPerTeam.
+ */
+export function botCounts(game, bots) {
+  const one = (n) => Math.max(0, Math.min(RULES.console.botsPerTeam, Math.floor(Number(n) || 0)));
+  return Object.fromEntries(game.teams.map((t) => [t, one(typeof bots === 'object' && bots ? bots[t] : bots)]));
+}
+
+/** The team of each bot the console brings into a game (see botCounts), taking turns. */
+export function botTeams(game, bots) {
+  const n = botCounts(game, bots);
   const out = [];
-  for (let i = 0; i < perTeam; i++) for (const t of game.teams) out.push(t);
+  for (let i = 0; i < RULES.console.botsPerTeam; i++) for (const t of game.teams) if (i < n[t]) out.push(t);
   return out;
 }
+
+/** A bot skill from the console: easy, normal or hard (normal for anything else). */
+export const botSkill = (skill) => (RULES.bot.skills[skill] ? skill : RULES.bot.skill);
 
 /** m:ss */
 export const clockText = (seconds) => `${Math.floor(Math.max(0, seconds) / 60)}:${String(Math.max(0, seconds) % 60).padStart(2, '0')}`;

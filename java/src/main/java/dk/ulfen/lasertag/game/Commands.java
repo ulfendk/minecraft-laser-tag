@@ -20,13 +20,16 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The game console's menu (clickable lines in chat) and the commands behind it, the
  * Java twin of the Bedrock console form and /scriptevent lasertag:start|stop:
  *   /lasertag start [mode] [minutes] [bots per team] [teams] [score to win]
  *   /lasertag stop
- *   /lasertag set mode|minutes|bots|teams <value>   (what the menu's buttons do)
+ *   /lasertag set mode|minutes|teams|skill <value>   (what the menu's buttons do)
+ *   /lasertag set bots <n>          (on every team)
+ *   /lasertag set bots <team> <n>   (on one team: say two kids a side with two bots each)
  *   /lasertag menu
  */
 public final class Commands {
@@ -34,8 +37,9 @@ public final class Commands {
 	private static final class Choice {
 		String mode = "team_deathmatch";
 		int minutes = LaserData.rules().console().startMinutes();
-		int bots;
+		final Map<String, Integer> bots = new HashMap<>();
 		int teams = 2;
+		String skill = LaserData.rules().bot().skill();
 		BlockPos console;
 	}
 
@@ -75,10 +79,18 @@ public final class Commands {
 			.map(m -> button(Component.translatable("lasertag.mode." + m), "/lasertag set mode " + m, m.equals(c.mode))).toList()));
 		player.sendSystemMessage(row("minutes", R.console().minutes().stream()
 			.map(m -> button(Component.literal(String.valueOf(m)), "/lasertag set minutes " + m, m == c.minutes)).toList()));
-		player.sendSystemMessage(row("bots", java.util.stream.IntStream.rangeClosed(0, R.console().botsPerTeam()).boxed()
-			.map(n -> button(Component.literal(String.valueOf(n)), "/lasertag set bots " + n, n == c.bots)).toList()));
 		player.sendSystemMessage(row("teams", java.util.stream.IntStream.rangeClosed(2, R.teams().size()).boxed()
 			.map(n -> button(Component.literal(String.valueOf(n)), "/lasertag set teams " + n, n == c.teams)).toList()));
+		// A row of bot buttons for each team playing.
+		for (String team : R.teams().subList(0, c.teams)) {
+			MutableComponent line = Component.translatable("lasertag.menu.bots", Component.translatable("lasertag.team." + team).withStyle(Game.colour(team)))
+				.withStyle(ChatFormatting.GRAY).append(" ");
+			int has = c.bots.getOrDefault(team, 0);
+			for (int n = 0; n <= R.console().botsPerTeam(); n++) line.append(button(Component.literal(String.valueOf(n)), "/lasertag set bots " + team + " " + n, n == has)).append(" ");
+			player.sendSystemMessage(line);
+		}
+		player.sendSystemMessage(row("skill", R.bot().skills().keySet().stream()
+			.map(k -> button(Component.translatable("lasertag.skill." + k), "/lasertag set skill " + k, k.equals(c.skill))).toList()));
 		player.sendSystemMessage(button(Component.translatable("lasertag.menu.start"), "/lasertag start", false).withStyle(ChatFormatting.GREEN));
 	}
 
@@ -92,8 +104,12 @@ public final class Commands {
 					if (GameLogic.modes().contains(value)) c.mode = value;
 				}
 				case "minutes" -> c.minutes = Math.max(1, Integer.parseInt(value));
-				case "bots" -> c.bots = Math.max(0, Math.min(LaserData.rules().console().botsPerTeam(), Integer.parseInt(value)));
+				case "bots" -> {
+					int n = Integer.parseInt(value);
+					for (String t : LaserData.rules().teams()) c.bots.put(t, n);
+				}
 				case "teams" -> c.teams = Math.max(2, Math.min(LaserData.rules().teams().size(), Integer.parseInt(value)));
+				case "skill" -> c.skill = GameLogic.botSkill(value);
 				default -> {}
 			}
 		} catch (NumberFormatException e) {
@@ -104,7 +120,25 @@ public final class Commands {
 		return 1;
 	}
 
+	/** `/lasertag set bots <team> <n>`: the bots on one team. */
+	private static int setTeamBots(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		ServerPlayer p = ctx.getSource().getPlayerOrException();
+		Choice c = choice(p);
+		String team = StringArgumentType.getString(ctx, "value");
+		if (!LaserData.rules().teams().contains(team)) {
+			ctx.getSource().sendFailure(Component.literal("Not a team: " + team));
+			return 0;
+		}
+		c.bots.put(team, IntegerArgumentType.getInteger(ctx, "count"));
+		openMenu(p, c.console != null ? c.console : p.blockPosition());
+		return 1;
+	}
+
 	private static int start(CommandContext<CommandSourceStack> ctx, String mode, int minutes, int bots, int teams, int score) {
+		return start(ctx, mode, minutes, GameLogic.everyTeam(bots), null, teams, score);
+	}
+
+	private static int start(CommandContext<CommandSourceStack> ctx, String mode, int minutes, Map<String, Integer> bots, @Nullable String skill, int teams, int score) {
 		CommandSourceStack src = ctx.getSource();
 		ServerPlayer player = src.getPlayer();
 		ServerLevel level = src.getLevel();
@@ -113,7 +147,7 @@ public final class Commands {
 			Choice c = choice(player);
 			if (c.console != null && c.console.distSqr(at) < 32 * 32) at = c.console;
 		}
-		if (!Game.start(level, at, mode, minutes, score, teams, bots, player)) {
+		if (!Game.start(level, at, mode, minutes, score, teams, bots, skill, player)) {
 			src.sendFailure(Component.translatable("lasertag.running"));
 			return 0;
 		}
@@ -123,7 +157,7 @@ public final class Commands {
 	private static int startWithChoice(CommandContext<CommandSourceStack> ctx) {
 		ServerPlayer p = ctx.getSource().getPlayer();
 		Choice c = p != null ? choice(p) : new Choice();
-		return start(ctx, c.mode, c.minutes, c.bots, c.teams, 0);
+		return start(ctx, c.mode, c.minutes, c.bots, c.skill, c.teams, 0);
 	}
 
 	public static void register() {
@@ -142,8 +176,19 @@ public final class Commands {
 							return b.buildFuture();
 						}).executes(c -> set(c, "mode"))))
 					.then(net.minecraft.commands.Commands.literal("minutes").then(net.minecraft.commands.Commands.argument("value", StringArgumentType.word()).executes(c -> set(c, "minutes"))))
-					.then(net.minecraft.commands.Commands.literal("bots").then(net.minecraft.commands.Commands.argument("value", StringArgumentType.word()).executes(c -> set(c, "bots"))))
-					.then(net.minecraft.commands.Commands.literal("teams").then(net.minecraft.commands.Commands.argument("value", StringArgumentType.word()).executes(c -> set(c, "teams")))))
+					.then(net.minecraft.commands.Commands.literal("bots").then(net.minecraft.commands.Commands.argument("value", StringArgumentType.word())
+						.suggests((c, b) -> {
+							LaserData.rules().teams().forEach(b::suggest);
+							return b.buildFuture();
+						})
+						.executes(c -> set(c, "bots"))
+						.then(net.minecraft.commands.Commands.argument("count", IntegerArgumentType.integer(0, LaserData.rules().console().botsPerTeam())).executes(Commands::setTeamBots))))
+					.then(net.minecraft.commands.Commands.literal("teams").then(net.minecraft.commands.Commands.argument("value", StringArgumentType.word()).executes(c -> set(c, "teams"))))
+					.then(net.minecraft.commands.Commands.literal("skill").then(net.minecraft.commands.Commands.argument("value", StringArgumentType.word())
+						.suggests((c, b) -> {
+							LaserData.rules().bot().skills().keySet().forEach(b::suggest);
+							return b.buildFuture();
+						}).executes(c -> set(c, "skill")))))
 				.then(net.minecraft.commands.Commands.literal("start").executes(Commands::startWithChoice)
 					.then(net.minecraft.commands.Commands.argument("mode", StringArgumentType.word())
 						.suggests((c, b) -> {

@@ -52,7 +52,9 @@ public final class LaserData {
 
 	public record Smoke(float burst, float pause, int puffs, float drift) {}
 
-	public record Bot(float health, float sight, float[] interval, float accuracy, float range) {}
+	public record Bot(float health, float sight, float[] interval, Map<String, Skill> skills, String skill, float range) {}
+
+	public record Skill(float fire, float accuracy) {}
 
 	public record Creature(String id, float width, float height, double health, double speed, List<String> animations, Sounds sounds) {}
 

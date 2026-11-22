@@ -29,6 +29,8 @@ public final class GameLogic {
 		public LinkedHashMap<String, Stat> stats = new LinkedHashMap<>();
 		public LinkedHashMap<String, Flag> flags = new LinkedHashMap<>();
 		public LinkedHashMap<String, Point> points = new LinkedHashMap<>();
+		/** How good the game's bots are (easy, normal, hard). Set by the runtime. */
+		public @Nullable String skill;
 		/** Where the console is: the dimension and position. Set by the runtime. */
 		public @Nullable String dim;
 		public double x, y, z;
@@ -402,10 +404,38 @@ public final class GameLogic {
 		return kinds.get(Math.min(kinds.size() - 1, (int) Math.floor(r * kinds.size())));
 	}
 
-	public static List<String> botTeams(State g, int perTeam) {
-		List<String> out = new ArrayList<>();
-		for (int i = 0; i < perTeam; i++) out.addAll(g.teams);
+	/**
+	 * How many bots the console brings onto each team in the game: `bots` per team (missing
+	 * teams get none); at most the console's botsPerTeam.
+	 */
+	public static LinkedHashMap<String, Integer> botCounts(State g, Map<String, Integer> bots) {
+		LinkedHashMap<String, Integer> out = new LinkedHashMap<>();
+		for (String t : g.teams) out.put(t, Math.max(0, Math.min(R().console().botsPerTeam(), bots.getOrDefault(t, 0))));
 		return out;
+	}
+
+	/** The same number of bots on every team. */
+	public static Map<String, Integer> everyTeam(int n) {
+		Map<String, Integer> out = new LinkedHashMap<>();
+		for (String t : R().teams()) out.put(t, n);
+		return out;
+	}
+
+	/** The team of each bot the console brings into a game (see botCounts), taking turns. */
+	public static List<String> botTeams(State g, Map<String, Integer> bots) {
+		Map<String, Integer> n = botCounts(g, bots);
+		List<String> out = new ArrayList<>();
+		for (int i = 0; i < R().console().botsPerTeam(); i++) for (String t : g.teams) if (i < n.get(t)) out.add(t);
+		return out;
+	}
+
+	public static List<String> botTeams(State g, int perTeam) {
+		return botTeams(g, everyTeam(perTeam));
+	}
+
+	/** A bot skill from the console: easy, normal or hard (normal for anything else). */
+	public static String botSkill(@Nullable String skill) {
+		return skill != null && R().bot().skills().containsKey(skill) ? skill : R().bot().skill();
 	}
 
 	public static String clockText(int seconds) {

@@ -11,7 +11,7 @@ import { padsOf, toggleSmoke } from './arena.js';
 import { counts, joinTeam } from './bots.js';
 import { current, givePowerup, isDown, isProtected, startGame, stopGame, tag } from './game.js';
 import { fireRay, pulse } from './guns.js';
-import { BOT, dist, DOWN_TAG, GAME_BOT_TAG, LOG, nameOf, norm, NS, SIGN, sub } from './util.js';
+import { BOT, dist, DOWN_TAG, GAME_BOT_TAG, LOG, nameOf, norm, NS, SIGN, sub, teamOf } from './util.js';
 
 const later = (ticks) => new Promise((resolve) => system.runTimeout(resolve, ticks));
 const Y = -60; // the first block above a flat world's grass
@@ -109,13 +109,17 @@ async function selfTest() {
   check(pulse(dim, blue.location, red) === 1 && isDown(blue), 'the pulse grenade did not tag');
   await later(DOWN + PROTECT + 10);
 
-  // Team deathmatch, with a bot on each team that fires by itself.
-  check(startGame({ mode: 'team_deathmatch', minutes: 3, bots: 1, teams: 2 }, { dimension: dim, location: { x: 16, y: Y, z: 12 } }), 'the game did not start');
+  // Team deathmatch with hard bots, two on red and one on blue, that fire by themselves.
+  check(startGame({ mode: 'team_deathmatch', minutes: 3, bots: { red: 2, blue: 1 }, skill: 'hard', teams: 2 }, { dimension: dim, location: { x: 16, y: Y, z: 12 } }), 'the game did not start');
+  check(current()?.skill === 'hard', 'the bots are not hard');
   await later(10);
-  const gameBots = dim.getEntities({ type: BOT, tags: [GAME_BOT_TAG] });
-  check(gameBots.length === 2, `${gameBots.length} game bots, not 2`);
+  const allBots = dim.getEntities({ type: BOT, tags: [GAME_BOT_TAG] });
   // Held still until the test's own tag has scored, so they can't tag the test's bots first.
-  for (const b of gameBots) b.triggerEvent(`${NS}:hold`);
+  for (const b of allBots) b.triggerEvent(`${NS}:hold`);
+  const reds = allBots.filter((b) => teamOf(b) === 'red');
+  check(allBots.length === 3 && reds.length === 2, `${allBots.length} game bots, ${reds.length} on red, not 2 on red and 1 on blue`);
+  // One of each team goes on; the second red bot stays held.
+  const gameBots = [reds[0], allBots.find((b) => teamOf(b) === 'blue')];
   check(current()?.phase === 'countdown', 'no countdown');
   check(!tag(red, blue), 'a tag counted during the countdown');
   await until(() => current()?.phase === 'running', 140);

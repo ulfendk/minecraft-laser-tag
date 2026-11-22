@@ -81,9 +81,16 @@ export const RULES = {
   bot: {
     health: 20,
     sight: 32,
-    // Seconds between shots, chance to hit (it aims a little off otherwise).
-    interval: [1.0, 2.0],
-    accuracy: 0.55,
+    // Seconds between the AI's shots. How good a bot is, picked on the console: `fire` is the
+    // chance it takes a shot the AI offers, `accuracy` the chance it hits (it aims a little off
+    // otherwise).
+    interval: [0.8, 1.6],
+    skills: {
+      easy: { fire: 0.45, accuracy: 0.3 },
+      normal: { fire: 0.75, accuracy: 0.55 },
+      hard: { fire: 1, accuracy: 0.8 },
+    },
+    skill: 'normal',
     range: 20,
   },
 };

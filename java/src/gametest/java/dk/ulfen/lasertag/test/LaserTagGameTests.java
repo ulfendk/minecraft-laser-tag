@@ -239,13 +239,18 @@ public class LaserTagGameTests {
 		});
 		t += down + protect + 10;
 
-		// Team deathmatch with a bot on each team that fires by itself.
+		// Team deathmatch with hard bots, two on red and one on blue, that fire by themselves.
 		helper.runAfterDelay(t, () -> {
-			check(helper, Game.start(level, console, "team_deathmatch", 3, 0, 2, 1, null), "the game did not start");
+			check(helper, Game.start(level, console, "team_deathmatch", 3, 0, 2, Map.of("red", 2, "blue", 1), "hard", null), "the game did not start");
+			check(helper, "hard".equals(Game.current().skill), "the bots are not hard");
 			for (Entity e : level.getAllEntities()) if (e instanceof LaserBot b && b.entityTags().contains(Game.GAME_BOT_TAG)) gameBots.add(b);
-			check(helper, gameBots.size() == 2, gameBots.size() + " game bots, not 2");
 			// Held still until the test's own tag has scored, so they can't tag the test's bots first.
 			gameBots.forEach(b -> b.setHold(true));
+			long reds = gameBots.stream().filter(b -> "red".equals(b.team())).count();
+			check(helper, gameBots.size() == 3 && reds == 2, gameBots.size() + " game bots, " + reds + " on red, not 2 on red and 1 on blue");
+			// One of each team goes on; the second red bot stays held.
+			gameBots.sort(java.util.Comparator.comparing(LaserBot::team));
+			gameBots.remove(2);
 			check(helper, Game.current().phase.equals("countdown") && Game.tag(red, blue) == null, "a tag counted during the countdown");
 		});
 		t += 110;

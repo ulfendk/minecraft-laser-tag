@@ -117,13 +117,16 @@ public final class Lasers {
 		return true;
 	}
 
-	/** A bot fires at `target`: usually on target, now and then a block or so off. */
+	/** A bot fires at `target` (if its skill takes the shot): usually on target, now and then a block or so off. */
 	public static boolean botFire(LaserBot bot, LivingEntity target) {
 		if (Game.isDown(bot) || Game.teamOf(bot) == null) return false;
+		GameLogic.State game = Game.current();
+		LaserData.Skill skill = R().bot().skills().get(GameLogic.botSkill(game != null ? game.skill : null));
+		RandomSource random = bot.getRandom();
+		if (random.nextFloat() > skill.fire()) return false;
 		Vec3 eye = bot.getEyePosition();
 		Vec3 aim = target.position().add(0, 1, 0);
-		RandomSource random = bot.getRandom();
-		if (random.nextFloat() > R().bot().accuracy()) {
+		if (random.nextFloat() > skill.accuracy()) {
 			double a = random.nextDouble() * Math.PI * 2;
 			aim = aim.add(Math.cos(a) * 1.2, random.nextDouble() - 0.5, Math.sin(a) * 1.2);
 		}

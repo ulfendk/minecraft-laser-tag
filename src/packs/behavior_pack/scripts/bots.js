@@ -1,11 +1,12 @@
 // Laser bots. The game's AI picks a target and walks after it (entities/laser_bot.json);
 // when it "shoots" a bot_shot, the shot is taken away at once and the bot fires a
 // laser instead, aimed at its target – and now and then a little off. The console
-// brings bots into a game on every team, at the team's spawn pads.
+// brings bots into a game, as many as it was told for each team, at the team's spawn
+// pads; how often they shoot and hit is the game's bot skill.
 import { world } from '@minecraft/server';
 import { RULES } from './data.js';
-import { botTeams } from './logic.js';
-import { isActive, isDown, isProtected, recordShot, teamLabel } from './game.js';
+import { botSkill, botTeams } from './logic.js';
+import { current, isActive, isDown, isProtected, recordShot, teamLabel } from './game.js';
 import { padsOf } from './arena.js';
 import { fireRay, muzzle } from './guns.js';
 import { BOT, dist, GAME_BOT_TAG, isBot, isPlayer, norm, NS, sound, sub, teamOf } from './util.js';
@@ -44,14 +45,16 @@ function target(bot) {
   return best;
 }
 
-/** `bot` fires at its target (if it still has one): usually on target, sometimes just off. */
+/** `bot` fires at its target (if it still has one and its skill takes the shot): usually on target, sometimes just off. */
 export function botFire(bot) {
   if (!bot?.isValid || isDown(bot) || !teamOf(bot)) return false;
+  const skill = RULES.bot.skills[botSkill(current()?.skill)];
+  if (Math.random() > skill.fire) return false;
   const t = target(bot);
   if (!t) return false;
   const eye = muzzle(bot);
   const aim = { x: t.location.x, y: t.location.y + 1, z: t.location.z };
-  if (Math.random() > RULES.bot.accuracy) {
+  if (Math.random() > skill.accuracy) {
     // A miss: off to one side by a block or so.
     const a = Math.random() * Math.PI * 2;
     aim.x += Math.cos(a) * 1.2;
@@ -67,10 +70,10 @@ export function botFire(bot) {
   return true;
 }
 
-/** Bots for a new game: `perTeam` on every team, at the team's pads (or round the console). */
-export function spawnGameBots(game, at, perTeam) {
+/** Bots for a new game: `bots` per team (see botCounts), at the team's pads (or round the console). */
+export function spawnGameBots(game, at, bots) {
   const n = {};
-  const all = botTeams(game, perTeam);
+  const all = botTeams(game, bots);
   for (const [i, team] of all.entries()) {
     const pads = padsOf(team, at.dimension);
     const pad = pads[i % Math.max(1, pads.length)];

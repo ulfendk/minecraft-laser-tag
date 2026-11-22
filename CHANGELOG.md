@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0] - 2026-11-22
+
+### Added
+- Choose the laser bots for each team on the game console, for example two kids a side with two bots on each team, or bots only on the smaller team. On Bedrock the form has a slider for each team; on Java the chat menu has a row of buttons for each team playing.
+- Bot skill: easy, normal or hard. Easy bots shoot less often and miss more; hard bots shoot at every chance and rarely miss.
+- The Bedrock console remembers the last game's settings, so the next round is just Start.
+- Commands: `/lasertag set bots <team> <n>` and `/lasertag set skill <skill>` on Java. On Bedrock, `/scriptevent lasertag:start` takes bots per team (`2,2` for red and blue) and a skill.
+
 ## [0.3.0] - 2026-11-21
 
 ### Added
