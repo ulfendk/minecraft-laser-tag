@@ -1,5 +1,6 @@
 // The game console: use it to set up and start a game (mode, minutes, score to win,
-// teams, how many laser bots on each team and how good they are), or, while one is on,
+// teams, how many laser bots on each team and how good they are, and whether a tagged
+// player goes back to base), or, while one is on,
 // to stop it. It remembers what was picked last, so the next round is one click.
 import { system, world } from '@minecraft/server';
 import { MessageFormData, ModalFormData } from '@minecraft/server-ui';
@@ -25,6 +26,7 @@ function askToStop(player) {
 
 const LAST = `${NS}:console`;
 const SKILLS = Object.keys(RULES.bot.skills);
+const AFTER = ['base', 'stay'];
 
 /** What was picked on a console last time (or the defaults). */
 function lastChoice() {
@@ -39,6 +41,7 @@ function lastChoice() {
     teams: Math.max(2, Math.min(RULES.teams.length, Number(c.teams) || 2)),
     bots: typeof c.bots === 'object' && c.bots ? c.bots : {},
     skill: botSkill(c.skill),
+    afterTag: AFTER.includes(c.afterTag) ? c.afterTag : AFTER[0],
   };
 }
 
@@ -58,15 +61,17 @@ function askToStart(player, block) {
   }
   form
     .dropdown(t('form.skill'), SKILLS.map((k) => t(`skill.${k}`)), { defaultValueIndex: SKILLS.indexOf(last.skill) })
+    .dropdown(t('form.after'), AFTER.map((k) => t(`after.${k}`)), { defaultValueIndex: AFTER.indexOf(last.afterTag) })
     .submitButton(t('form.start'))
     .show(player)
     .then((r) => {
       if (r.canceled || !r.formValues) return;
       const [mode, minute, scoreLimit, teams, ...rest] = r.formValues;
       const skill = SKILLS[rest[RULES.teams.length]];
+      const afterTag = AFTER[rest[RULES.teams.length + 1]];
       // Kept for every team (the game leaves out the teams not playing), so they come back next time.
       const bots = Object.fromEntries(RULES.teams.map((team, i) => [team, rest[i]]));
-      const settings = { mode: MODES[mode], minutes: minutes[minute], scoreLimit, teams, bots, skill };
+      const settings = { mode: MODES[mode], minutes: minutes[minute], scoreLimit, teams, bots, skill, afterTag };
       world.setDynamicProperty(LAST, JSON.stringify(settings));
       startGame(settings, { dimension: block.dimension, location: block.location }, player);
     })

@@ -21,7 +21,7 @@ Laser tag for Minecraft – a **Bedrock add-on** and a **Java Edition mod (Fabri
 
 - **Vests** in red, blue, green and yellow: the vest is your team. If you have no vest, you can't fire and can't be tagged.
 - **Being tagged**: you are out for 4 s (slowed, can't fire), then you come back on one of your team's spawn pads. You can't be tagged for 3 s after that. Friendly fire is off.
-- **Game Console**: use it to choose the mode, minutes, score to win, 2–4 teams, 0–4 bots on each team (say two kids a side with two bots each) and how good the bots are (easy, normal, hard), then start. On Bedrock this is a form that remembers the last game; on Java, a clickable menu in chat. Use it again to stop the game.
+- **Game Console**: use it to choose the mode, minutes, score to win, 2–4 teams, 0–4 bots on each team (say two kids a side with two bots each) and how good the bots are (easy, normal, hard), and whether a tagged player goes back to base or carries on where they are, then start. On Bedrock this is a form that remembers the last game; on Java, a clickable menu in chat. Use it again to stop the game.
   - Every game has a 5 s countdown, team scores on the sidebar, and the time, score and heat above the hotbar.
   - Tags are announced in chat, along with streaks and double, triple and quad tags, plus a last-minute warning.
   - At the end you get the winner, fireworks, everyone's tags, accuracy and captures, and the MVP.
@@ -36,8 +36,8 @@ Laser tag for Minecraft – a **Bedrock add-on** and a **Java Edition mod (Fabri
 - **Laser bots**: they hunt anyone in another team's vest and the other teams' bots. Only a player's hand can hurt them.
 - **Building blocks**: neon panels in seven colours, cover crates, black-light floor and a scoreboard screen.
 - **Commands**:
-  - Bedrock: `/scriptevent lasertag:start [mode] [minutes] [bots] [teams] [skill]`, where bots is one number for every team or one per team (`2,2`), and `/scriptevent lasertag:stop`.
-  - Java: `/lasertag start [mode] [minutes] [bots] [teams] [score]`, `/lasertag stop`, `/lasertag menu`, `/lasertag set bots <team> <n>` and `/lasertag set skill easy|normal|hard`.
+  - Bedrock: `/scriptevent lasertag:start [mode] [minutes] [bots] [teams] [skill] [base|stay]`, where bots is one number for every team or one per team (`2,2`), and `/scriptevent lasertag:stop`.
+  - Java: `/lasertag start [mode] [minutes] [bots] [teams] [score]`, `/lasertag stop`, `/lasertag menu`, `/lasertag set bots <team> <n>`, `/lasertag set skill easy|normal|hard` and `/lasertag set after base|stay`.
 
 All numbers are in [`src/rules.mjs`](src/rules.mjs), shared by both editions. The game rules themselves are in [`src/lib/game.mjs`](src/lib/game.mjs), and the Java mod has a port of them in `GameLogic.java`. A game test plays recorded games on Java and checks that it gets the same results as the JavaScript rules.
 

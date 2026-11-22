@@ -121,8 +121,9 @@ async function selfTest() {
 
   check(!alarming() && siren.permutation.getState(`${NS}:charged`) === false, 'the siren did not stop, or it recharged too soon');
 
-  // Team deathmatch with hard bots, two on red and one on blue, that fire by themselves.
-  check(startGame({ mode: 'team_deathmatch', minutes: 3, bots: { red: 2, blue: 1 }, skill: 'hard', teams: 2 }, { dimension: dim, location: { x: 16, y: Y, z: 12 } }), 'the game did not start');
+  // Team deathmatch with hard bots, two on red and one on blue, that fire by themselves;
+  // a tagged player (or bot) carries on from where it was tagged.
+  check(startGame({ mode: 'team_deathmatch', minutes: 3, bots: { red: 2, blue: 1 }, skill: 'hard', afterTag: 'stay', teams: 2 }, { dimension: dim, location: { x: 16, y: Y, z: 12 } }), 'the game did not start');
   check(current()?.skill === 'hard', 'the bots are not hard');
   await later(10);
   const allBots = dim.getEntities({ type: BOT, tags: [GAME_BOT_TAG] });
@@ -151,6 +152,7 @@ async function selfTest() {
   console.log(`${LOG} selftest: the bots fired ${shots()} shots (the AI shot ${counts.shots} times, ${counts.fired} fired), scores ${JSON.stringify(current()?.scores)}`);
   check(stopGame() && current()?.phase === 'over', 'the game did not stop');
   await later(DOWN + PROTECT);
+  check(!isDown(blue) && dist(blue.location, { x: 30.5, y: Y + 1, z: 2.5 }) > 5, `the tagged bot went back to base, though the game said stay (${JSON.stringify(blue.location)})`);
 
   // Capture the flag: red takes blue's flag and brings it home.
   check(startGame({ mode: 'capture_the_flag', minutes: 3, bots: 0, teams: 2 }, { dimension: dim, location: { x: 16, y: Y, z: 12 } }), 'capture the flag did not start');

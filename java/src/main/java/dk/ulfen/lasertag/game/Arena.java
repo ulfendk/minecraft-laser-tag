@@ -6,7 +6,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.gson.Gson;
+import com.mojang.serialization.Codec;
+
 import dk.ulfen.lasertag.LaserData;
+import dk.ulfen.lasertag.LaserRegistry;
 import dk.ulfen.lasertag.block.ArenaBlock;
 import dk.ulfen.lasertag.block.ControlPointBlock;
 import dk.ulfen.lasertag.block.FlagStandBlock;
@@ -14,9 +18,11 @@ import dk.ulfen.lasertag.block.PowerStationBlock;
 import dk.ulfen.lasertag.block.SirenBlock;
 import dk.ulfen.lasertag.block.SmokeMachineBlock;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.core.particles.ColorParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -28,6 +34,8 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
@@ -45,6 +53,51 @@ public final class Arena {
 	private static final Map<String, Long> RECHARGE_AT = new HashMap<>();
 
 	private Arena() {}
+
+	// Spawn pads are kept with the world too: a pad far away (whose chunk hasn't ticked
+	// since the server started) is still a team's base.
+	private record SavedPad(String dim, int x, int y, int z, String team) {}
+
+	public static final class Pads extends SavedData {
+		private static final Codec<Pads> CODEC = Codec.STRING.xmap(Pads::new, s -> s.json);
+		static final SavedDataType<Pads> TYPE = new SavedDataType<>(LaserRegistry.id("pads"), Pads::new, CODEC, null);
+		private String json = "[]";
+
+		public Pads() {}
+
+		private Pads(String json) {
+			this.json = json;
+		}
+	}
+
+	private static final Gson GSON = new Gson();
+
+	private static void savePads(MinecraftServer server) {
+		List<SavedPad> pads = new ArrayList<>();
+		for (Entry e : BLOCKS.values()) {
+			if (e.kind().equals("pad")) pads.add(new SavedPad(e.dim().identifier().toString(), e.pos().getX(), e.pos().getY(), e.pos().getZ(), e.team()));
+		}
+		Pads s = server.overworld().getDataStorage().computeIfAbsent(Pads.TYPE);
+		s.json = GSON.toJson(pads);
+		s.setDirty();
+	}
+
+	/** The server started: the pads it knew before. */
+	public static void load(MinecraftServer server) {
+		BLOCKS.clear();
+		RECHARGE_AT.clear();
+		alarm = null;
+		try {
+			SavedPad[] pads = GSON.fromJson(server.overworld().getDataStorage().computeIfAbsent(Pads.TYPE).json, SavedPad[].class);
+			for (SavedPad p : pads) {
+				ResourceKey<Level> dim = ResourceKey.create(Registries.DIMENSION, Identifier.parse(p.dim()));
+				BlockPos pos = new BlockPos(p.x(), p.y(), p.z());
+				BLOCKS.put(dim.identifier() + " " + p.x() + " " + p.y() + " " + p.z(), new Entry("pad", p.team(), dim, pos, 0));
+			}
+		} catch (RuntimeException e) {
+			// Nothing saved, or unreadable: the pads tell us again as they tick.
+		}
+	}
 
 	public static String key(Level level, BlockPos pos) {
 		return level.dimension().identifier() + " " + pos.getX() + " " + pos.getY() + " " + pos.getZ();
@@ -68,6 +121,7 @@ public final class Arena {
 			if (!v.kind().equals(kind) || v.dim() != level.dimension() || (team != null && !team.equals(v.team()))) continue;
 			if (level.isLoaded(v.pos()) && !(level.getBlockState(v.pos()).getBlock() instanceof ArenaBlock)) {
 				it.remove();
+				if (v.kind().equals("pad")) savePads(level.getServer());
 				continue;
 			}
 			out.add(e);
@@ -144,7 +198,9 @@ public final class Arena {
 	public static void tick(ServerLevel level, BlockPos pos, BlockState state, ArenaBlock block) {
 		String key = key(level, pos);
 		long now = level.getServer().getTickCount();
+		boolean known = BLOCKS.containsKey(key);
 		BLOCKS.put(key, new Entry(block.kind(), block.team(), level.dimension(), pos.immutable(), now));
+		if (block.kind().equals("pad") && !known) savePads(level.getServer());
 		GameLogic.State game = Game.current();
 		Vec3 top = Vec3.atBottomCenterOf(pos).add(0, 1, 0);
 		switch (block.kind()) {

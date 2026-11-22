@@ -129,7 +129,8 @@ function comeBack(entity) {
   wakeUp(entity);
   // Bots held still (the selftest's targets) stay held.
   if (isBot(entity)) entity.triggerEvent(entity.hasTag(`${NS}_hold`) ? `${NS}:hold` : `${NS}:up`);
-  respawn(entity);
+  // Back to base, unless the game says to carry on from where you were tagged.
+  if (game?.afterTag !== 'stay') respawn(entity);
   protectUntil.set(entity.id, now() + RULES.tag.protect * 20);
   sound(entity, 'beacon.activate', 1.6);
 }
@@ -157,26 +158,49 @@ function stun(player, on) {
 /** The sign above a tagged head: a first line on its name tag, counting down. */
 function showSign(entity, seconds) {
   try {
-    const text = `${SIGN}>> TAGGED ${seconds} <<§r\n${plainName(entity.nameTag ?? '')}`;
+    const rest = restName(entity);
+    const text = `${SIGN}>> TAGGED ${seconds} <<§r${rest ? `\n${rest}` : ''}`;
     if (entity.nameTag !== text) entity.nameTag = text;
   } catch {}
 }
 
 function hideSign(entity) {
   try {
-    const name = plainName(entity.nameTag ?? '');
+    const name = restName(entity);
     if (entity.nameTag !== name) entity.nameTag = name;
   } catch {}
 }
 
-/** Send `entity` to one of its team's spawn pads (in its dimension). */
+// ---------------------------------------------------------------- hidden names
+
+/** Players whose names are hidden: a name above your head gives away where you are. */
+const hidden = new Set();
+const hiding = () => !!game && game.phase !== 'over';
+/** What is on a name tag without a sign: a player's name, but nothing while a game is on. */
+const restName = (entity) => (isPlayer(entity) ? (hiding() ? '' : entity.name) : plainName(entity.nameTag ?? ''));
+
+/** Hide every player's name while a game is on, and give them back after. */
+function hideNames() {
+  for (const p of world.getAllPlayers()) {
+    if (hiding()) hidden.add(p.id);
+    else if (!hidden.delete(p.id)) continue;
+    if (!isDown(p)) hideSign(p);
+  }
+}
+
+/**
+ * Send `entity` to its base: one of its team's spawn pads (in its dimension), or else, in
+ * a game, where it stood when the game started.
+ */
 export function respawn(entity) {
   const team = teamOf(entity);
   const pads = team ? padsOf(team, entity.dimension) : [];
-  if (!pads.length) return false;
   const pad = pads[Math.floor(Math.random() * pads.length)];
+  const base = game?.bases?.[nameOf(entity)];
+  const to = pad ? { x: pad.x + 0.5, y: pad.y + 1, z: pad.z + 0.5, dim: entity.dimension.id } : base;
+  if (!to) return false;
   try {
-    entity.teleport({ x: pad.x + 0.5, y: pad.y + 1, z: pad.z + 0.5 }, { dimension: entity.dimension });
+    entity.teleport({ x: to.x, y: to.y, z: to.z }, { dimension: world.getDimension(to.dim) });
     return true;
   } catch {
     return false;
@@ -218,13 +242,16 @@ const findByName = (who) => {
 
 /**
  * Start a game. `settings`: mode, minutes, scoreLimit, teams, bots (one number for every
- * team, or { red: 2, blue: 1 }) and skill (the bots': easy, normal or hard).
+ * team, or { red: 2, blue: 1 }), skill (the bots': easy, normal or hard) and afterTag
+ * (base: back to base once the stun is over; stay: carry on from where you were tagged).
  * `at`: { dimension, location } of the console. False if one is on already.
  */
 export function startGame(settings, at, starter) {
   if (game && game.phase !== 'over') return false;
   game = newGame(settings);
   game.skill = botSkill(settings.skill);
+  game.afterTag = settings.afterTag === 'stay' ? 'stay' : 'base';
+  game.bases = {};
   game.origin = { dim: at.dimension.id, x: at.location.x, y: at.location.y, z: at.location.z };
   clearAt = 0;
   for (const id of downUntil.keys()) {
@@ -233,13 +260,15 @@ export function startGame(settings, at, starter) {
   }
   for (const map of [downUntil, protectUntil, powerups, heat]) map.clear();
   for (const p of world.getAllPlayers()) wakeUp(p);
+  hideNames();
   setupScoreboard();
   resetArena();
   removeGameBots(at.dimension);
   spawnGameBots(game, at, settings.bots ?? 0);
-  // Everyone nearby in a vest goes to their team's pad.
+  // Everyone nearby in a vest goes to their team's pad; without one, where they stand is their base.
   for (const p of world.getAllPlayers()) {
-    if (teamOf(p) && p.dimension.id === at.dimension.id && Math.hypot(p.location.x - at.location.x, p.location.z - at.location.z) <= RULES.console.reach) respawn(p);
+    if (!teamOf(p) || p.dimension.id !== at.dimension.id || Math.hypot(p.location.x - at.location.x, p.location.z - at.location.z) > RULES.console.reach) continue;
+    if (!respawn(p)) game.bases[p.name] = { x: p.location.x, y: p.location.y, z: p.location.z, dim: p.dimension.id };
   }
   announce('started', starter ? { text: nameOf(starter) } : { text: '§7Laser Tag§r' }, { translate: `${NS}.mode.${game.mode}` }, Math.round(game.left / 60), game.scoreLimit);
   showCountdown(game.countdown);
@@ -338,6 +367,7 @@ function finish(winner) {
     p.playSound('random.levelup');
   }
   announce('over');
+  hideNames();
   world.sendMessage(winnerText);
   const rows = Object.entries(game.stats).sort((a, b) => b[1].tags - a[1].tags);
   for (const [who, s] of rows) announce('stats', who, s.tags, s.tagged, `${accuracy(s)}%`, s.captures);
@@ -494,8 +524,11 @@ function load() {
     game = null;
   }
   if (!game) clearScoreboard();
-  // Nobody stays down across a restart.
-  for (const p of world.getAllPlayers()) wakeUp(p);
+  // Nobody stays down across a restart, and a name hidden by a game that is over comes back.
+  for (const p of world.getAllPlayers()) {
+    if (!game && p.nameTag === '') p.nameTag = p.name;
+    wakeUp(p);
+  }
   for (const dim of ['overworld', 'nether', 'the_end']) {
     for (const bot of world.getDimension(dim).getEntities({ type: BOT, tags: [DOWN_TAG] })) {
       wakeUp(bot);
@@ -510,6 +543,7 @@ export function setupGame() {
   system.runInterval(everyTick, 2);
   system.runInterval(droppedFlags, 5);
   system.runInterval(() => {
+    hideNames();
     for (const p of world.getAllPlayers()) {
       if (!teamOf(p) && !message.has(p.id)) continue;
       if (!teamOf(p) && (message.get(p.id)?.until ?? 0) <= now()) {
@@ -548,11 +582,11 @@ export function setupGame() {
     if (running()) handle(dropFlagsOf(playerName));
   });
   // Commands for game hosts: /scriptevent lasertag:stop, and
-  // /scriptevent lasertag:start [mode] [minutes] [bots] [teams] [skill], where bots is one
+  // /scriptevent lasertag:start [mode] [minutes] [bots] [teams] [skill] [base|stay], where bots is one
   // number for every team or one per team in team order (2,2 or 2,2,1,0).
   system.afterEvents.scriptEventReceive.subscribe((event) => {
     if (event.id === `${NS}:start`) {
-      const [mode, minutes, bots = '0', teams, skill] = (event.message ?? '').trim().split(/\s+/);
+      const [mode, minutes, bots = '0', teams, skill, afterTag] = (event.message ?? '').trim().split(/\s+/);
       const each = bots.split(',');
       const source = event.sourceEntity ?? world.getAllPlayers()[0];
       const at = source ? { dimension: source.dimension, location: source.location } : { dimension: world.getDimension('overworld'), location: { x: 0, y: 0, z: 0 } };
@@ -562,6 +596,7 @@ export function setupGame() {
         bots: each.length > 1 ? Object.fromEntries(RULES.teams.map((t, i) => [t, Number(each[i]) || 0])) : Number(bots) || 0,
         teams: Number(teams) || 2,
         skill,
+        afterTag,
       }, at, isPlayer(source) ? source : undefined);
     } else if (event.id === `${NS}:stop`) stopGame();
   });

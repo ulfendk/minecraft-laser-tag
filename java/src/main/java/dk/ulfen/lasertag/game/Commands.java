@@ -27,7 +27,7 @@ import org.jspecify.annotations.Nullable;
  * Java twin of the Bedrock console form and /scriptevent lasertag:start|stop:
  *   /lasertag start [mode] [minutes] [bots per team] [teams] [score to win]
  *   /lasertag stop
- *   /lasertag set mode|minutes|teams|skill <value>   (what the menu's buttons do)
+ *   /lasertag set mode|minutes|teams|skill|after <value>   (what the menu's buttons do; after: base or stay)
  *   /lasertag set bots <n>          (on every team)
  *   /lasertag set bots <team> <n>   (on one team: say two kids a side with two bots each)
  *   /lasertag menu
@@ -40,6 +40,7 @@ public final class Commands {
 		final Map<String, Integer> bots = new HashMap<>();
 		int teams = 2;
 		String skill = LaserData.rules().bot().skill();
+		String after = "base";
 		BlockPos console;
 	}
 
@@ -91,6 +92,8 @@ public final class Commands {
 		}
 		player.sendSystemMessage(row("skill", R.bot().skills().keySet().stream()
 			.map(k -> button(Component.translatable("lasertag.skill." + k), "/lasertag set skill " + k, k.equals(c.skill))).toList()));
+		player.sendSystemMessage(row("after", List.of("base", "stay").stream()
+			.map(k -> button(Component.translatable("lasertag.after." + k), "/lasertag set after " + k, k.equals(c.after))).toList()));
 		player.sendSystemMessage(button(Component.translatable("lasertag.menu.start"), "/lasertag start", false).withStyle(ChatFormatting.GREEN));
 	}
 
@@ -110,6 +113,7 @@ public final class Commands {
 				}
 				case "teams" -> c.teams = Math.max(2, Math.min(LaserData.rules().teams().size(), Integer.parseInt(value)));
 				case "skill" -> c.skill = GameLogic.botSkill(value);
+				case "after" -> c.after = "stay".equals(value) ? "stay" : "base";
 				default -> {}
 			}
 		} catch (NumberFormatException e) {
@@ -135,10 +139,11 @@ public final class Commands {
 	}
 
 	private static int start(CommandContext<CommandSourceStack> ctx, String mode, int minutes, int bots, int teams, int score) {
-		return start(ctx, mode, minutes, GameLogic.everyTeam(bots), null, teams, score);
+		return start(ctx, mode, minutes, GameLogic.everyTeam(bots), null, "base", teams, score);
 	}
 
-	private static int start(CommandContext<CommandSourceStack> ctx, String mode, int minutes, Map<String, Integer> bots, @Nullable String skill, int teams, int score) {
+	private static int start(CommandContext<CommandSourceStack> ctx, String mode, int minutes, Map<String, Integer> bots, @Nullable String skill, String after,
+			int teams, int score) {
 		CommandSourceStack src = ctx.getSource();
 		ServerPlayer player = src.getPlayer();
 		ServerLevel level = src.getLevel();
@@ -147,7 +152,7 @@ public final class Commands {
 			Choice c = choice(player);
 			if (c.console != null && c.console.distSqr(at) < 32 * 32) at = c.console;
 		}
-		if (!Game.start(level, at, mode, minutes, score, teams, bots, skill, player)) {
+		if (!Game.start(level, at, mode, minutes, score, teams, bots, skill, after, player)) {
 			src.sendFailure(Component.translatable("lasertag.running"));
 			return 0;
 		}
@@ -157,7 +162,7 @@ public final class Commands {
 	private static int startWithChoice(CommandContext<CommandSourceStack> ctx) {
 		ServerPlayer p = ctx.getSource().getPlayer();
 		Choice c = p != null ? choice(p) : new Choice();
-		return start(ctx, c.mode, c.minutes, c.bots, c.skill, c.teams, 0);
+		return start(ctx, c.mode, c.minutes, c.bots, c.skill, c.after, c.teams, 0);
 	}
 
 	public static void register() {
@@ -184,6 +189,12 @@ public final class Commands {
 						.executes(c -> set(c, "bots"))
 						.then(net.minecraft.commands.Commands.argument("count", IntegerArgumentType.integer(0, LaserData.rules().console().botsPerTeam())).executes(Commands::setTeamBots))))
 					.then(net.minecraft.commands.Commands.literal("teams").then(net.minecraft.commands.Commands.argument("value", StringArgumentType.word()).executes(c -> set(c, "teams"))))
+					.then(net.minecraft.commands.Commands.literal("after").then(net.minecraft.commands.Commands.argument("value", StringArgumentType.word())
+						.suggests((c, b) -> {
+							b.suggest("base");
+							b.suggest("stay");
+							return b.buildFuture();
+						}).executes(c -> set(c, "after"))))
 					.then(net.minecraft.commands.Commands.literal("skill").then(net.minecraft.commands.Commands.argument("value", StringArgumentType.word())
 						.suggests((c, b) -> {
 							LaserData.rules().bot().skills().keySet().forEach(b::suggest);

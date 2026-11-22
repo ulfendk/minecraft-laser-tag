@@ -17,8 +17,32 @@ const blocks = new Map();
 const rechargeAt = new Map(); // station or siren key -> tick
 const keyOf = (dimension, p) => `${dimension.id} ${p.x} ${p.y} ${p.z}`;
 
+// Spawn pads are kept with the world too: a pad far away (whose chunk hasn't ticked since
+// the world opened) is still a team's base.
+const PADS = `${NS}:pads`;
+let padsLoaded = false;
+
+function loadPads() {
+  if (padsLoaded) return;
+  padsLoaded = true;
+  try {
+    for (const e of JSON.parse(world.getDynamicProperty(PADS) ?? '[]')) {
+      const key = `${e.dim} ${e.pos.x} ${e.pos.y} ${e.pos.z}`;
+      if (!blocks.has(key)) blocks.set(key, { kind: 'pad', team: e.team, dim: e.dim, pos: e.pos, seen: 0 });
+    }
+  } catch {}
+}
+
+function savePads() {
+  try {
+    const pads = [...blocks.values()].filter((e) => e.kind === 'pad').map(({ team, dim, pos }) => ({ team, dim, pos }));
+    world.setDynamicProperty(PADS, JSON.stringify(pads));
+  } catch {}
+}
+
 /** Entries of one kind, in one dimension, whose block is still there. */
 function entries(kind, dimension, team) {
+  loadPads();
   const out = [];
   for (const [key, e] of blocks) {
     if (e.kind !== kind || e.dim !== dimension.id || (team && e.team !== team)) continue;
@@ -31,6 +55,7 @@ function entries(kind, dimension, team) {
     // Not loaded: trust it. Loaded and something else now: forget it.
     if (block && !KINDS[block.typeId]) {
       blocks.delete(key);
+      if (e.kind === 'pad') savePads();
       continue;
     }
     out.push({ key, ...e });
@@ -250,7 +275,10 @@ function tick(block) {
   const info = KINDS[block.typeId];
   if (!info) return;
   const key = keyOf(block.dimension, block.location);
+  loadPads();
+  const known = blocks.has(key);
   blocks.set(key, { kind: info.kind, team: info.team, dim: block.dimension.id, pos: { ...block.location }, seen: now() });
+  if (info.kind === 'pad' && !known) savePads();
   if (info.kind === 'pad') tickPad(block, info);
   else if (info.kind === 'flag') tickFlag(block, info);
   else if (info.kind === 'point') tickPoint(block, key);

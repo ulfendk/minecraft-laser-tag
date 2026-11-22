@@ -45,6 +45,20 @@ async function run() {
   results.push(await shot('creative', { mode: GameMode.Creative, z: 32.5 }));
   // Without a vest a gun does nothing (and says so).
   results.push(!(await shot('no vest', { z: 36.5, vest: false })));
+  // Names are hidden while a game is on, and come back after.
+  const kid = player('Kid', 4.5, 40.5, 'red');
+  await later(20);
+  const overworld = world.getDimension('overworld');
+  overworld.runCommand('scriptevent lasertag:start team_deathmatch 3 0 2');
+  await later(30);
+  const during = kid.nameTag;
+  overworld.runCommand('scriptevent lasertag:stop');
+  await later(30);
+  const after = kid.nameTag;
+  const names = during === '' && after === 'Kid';
+  console.log(`${LOG} names: during the game ${JSON.stringify(during)}, after ${JSON.stringify(after)}`);
+  results.push(names);
+  kid.disconnect();
   console.log(`${LOG} ${results.every(Boolean) ? 'PASS' : 'FAIL'}`);
 }
 

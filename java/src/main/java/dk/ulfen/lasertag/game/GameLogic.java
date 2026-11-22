@@ -1,6 +1,7 @@
 package dk.ulfen.lasertag.game;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,10 @@ public final class GameLogic {
 		public LinkedHashMap<String, Point> points = new LinkedHashMap<>();
 		/** How good the game's bots are (easy, normal, hard). Set by the runtime. */
 		public @Nullable String skill;
+		/** After a tag: back to "base", or "stay" where you were. Set by the runtime. */
+		public @Nullable String afterTag;
+		/** Where each one without a spawn pad started: their base. Set by the runtime. */
+		public Map<String, double[]> bases = new HashMap<>();
 		/** Where the console is: the dimension and position. Set by the runtime. */
 		public @Nullable String dim;
 		public double x, y, z;

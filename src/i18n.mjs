@@ -73,6 +73,10 @@ const GAME = {
   'skill.easy': ['Easy', 'Lette'],
   'skill.normal': ['Normal', 'Normale'],
   'skill.hard': ['Hard', 'Svære'],
+  'form.after': ['After a tag', 'Efter et ram'],
+  'after.base': ['Back to base', 'Tilbage til basen'],
+  'after.stay': ['Stay where you are', 'Bliv hvor du er'],
+  'menu.after': ['After a tag:', 'Efter et ram:'],
   'form.start': ['Start', 'Start'],
   'form.stop_title': ['Laser Tag', 'Lasertag'],
   'form.stop_body': ['A game is on. Stop it now?', 'Der er et spil i gang. Skal det stoppes nu?'],
@@ -188,7 +192,7 @@ const en = {
   vestsTitle: 'Vests, tags and scores',
   vests: [
     ['Team vests', 'Four colours, crafted from leather, dye and redstone. They don’t protect you – they only show your team and light up when you are hit.'],
-    ['Out for a moment', `A tag stuns you for ${R.tag.down} seconds: you are frozen to the spot, can’t fire, and a TAGGED sign over your head counts down so everyone can see you are out. Then you are sent to one of your team’s spawn pads and can’t be tagged for ${R.tag.protect} seconds.`],
+    ['Out for a moment', `A tag stuns you for ${R.tag.down} seconds: you are frozen to the spot, can’t fire, and a TAGGED sign over your head counts down so everyone can see you are out. Then you are sent back to base – one of your team’s spawn pads, or where you stood when the game started – and can’t be tagged for ${R.tag.protect} seconds. Or choose Stay where you are on the console, and carry on from where you were tagged. During a game, names are hidden so they don’t give away where you are.`],
     ['Streaks and multi-tags', 'Tag three in a row without being tagged and everyone hears you are on a roll – five is unstoppable, eight is legendary. Two tags within three seconds is a double tag.'],
     ['Scores and stats', 'Scores are on the screen all game, the time and your heat above your hotbar. At the end: the winner, fireworks, and everyone’s tags, accuracy and captures – and the MVP.'],
   ],
@@ -292,7 +296,7 @@ const da = {
   vestsTitle: 'Veste, træffere og point',
   vests: [
     ['Holdveste', 'Fire farver, lavet af læder, farvestof og rødsten. De beskytter dig ikke – de viser bare dit hold og lyser op, når du bliver ramt.'],
-    ['Ude et øjeblik', `Et skud, der rammer, lammer dig i ${R.tag.down} sekunder: Du står frosset fast, kan ikke skyde, og et skilt over hovedet tæller ned, så alle kan se, at du er ude. Så bliver du sendt til en af dit holds startplader og kan ikke rammes i ${R.tag.protect} sekunder.`],
+    ['Ude et øjeblik', `Et skud, der rammer, lammer dig i ${R.tag.down} sekunder: Du står frosset fast, kan ikke skyde, og et skilt over hovedet tæller ned, så alle kan se, at du er ude. Så bliver du sendt tilbage til basen – en af dit holds startplader, eller hvor du stod, da spillet startede – og kan ikke rammes i ${R.tag.protect} sekunder. Eller vælg Bliv hvor du er på konsollen, og fortsæt der, hvor du blev ramt. Under et spil er navnene skjult, så de ikke afslører, hvor du er.`],
     ['Stime og dobbeltskud', 'Ram tre i træk uden selv at blive ramt, så hører alle, at du kører derudad – fem er ustoppelig, otte er legendarisk. To træffere inden for tre sekunder er dobbelt.'],
     ['Point og statistik', 'Pointene står på skærmen hele spillet, tiden og din varme over værktøjslinjen. Til sidst: vinderen, fyrværkeri og alles træffere, træfsikkerhed og erobringer – og kampens spiller.'],
   ],

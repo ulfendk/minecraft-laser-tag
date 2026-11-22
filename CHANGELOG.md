@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.0] - 2026-11-22
+
+### Added
+- Names are hidden during a game, so the name above your head no longer gives away where you are. They come back when the game ends. A tagged player still shows the TAGGED sign.
+- A new console option, After a tag: Back to base or Stay where you are. Back to base sends a tagged player to their team's spawn pad once the stun is over. Without a pad, their base is where they stood when the game started.
+
+### Fixed
+- Spawn pads are remembered with the world, so a base far away still works after the world has been closed and opened again.
+
 ## [0.5.1] - 2026-11-22
 
 ### Fixed

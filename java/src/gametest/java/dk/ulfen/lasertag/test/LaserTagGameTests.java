@@ -191,7 +191,7 @@ public class LaserTagGameTests {
 	 * deathmatch with bots that fire by themselves, capture the flag, king of the hill,
 	 * and a game that ends at its score limit and is cleared away.
 	 */
-	@GameTest(structure = AREA, maxTicks = 3400)
+	@GameTest(structure = AREA, maxTicks = 3800)
 	public void playsLaserTag(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		Game.reset(level.getServer());
@@ -272,8 +272,10 @@ public class LaserTagGameTests {
 
 		// Team deathmatch with hard bots, two on red and one on blue, that fire by themselves.
 		helper.runAfterDelay(t, () -> {
-			check(helper, Game.start(level, console, "team_deathmatch", 3, 0, 2, Map.of("red", 2, "blue", 1), "hard", null), "the game did not start");
+			check(helper, Game.start(level, console, "team_deathmatch", 3, 0, 2, Map.of("red", 2, "blue", 1), "hard", "stay", null), "the game did not start");
 			check(helper, "hard".equals(Game.current().skill), "the bots are not hard");
+			var hidden = level.getServer().getScoreboard().getPlayerTeam(Game.HIDDEN_TEAM);
+			check(helper, hidden != null && hidden.getNameTagVisibility() == net.minecraft.world.scores.Team.Visibility.NEVER, "names are not hidden during the game");
 			for (Entity e : level.getAllEntities()) if (e instanceof LaserBot b && b.entityTags().contains(Game.GAME_BOT_TAG)) gameBots.add(b);
 			// Held still until the test's own tag has scored, so they can't tag the test's bots first.
 			gameBots.forEach(b -> b.setHold(true));
@@ -309,6 +311,12 @@ public class LaserTagGameTests {
 			}
 			check(helper, shots > 0, "the game's bots never fired");
 			check(helper, Game.stop() && Game.current().phase.equals("over"), "the game did not stop");
+			check(helper, level.getServer().getScoreboard().getPlayerTeam(Game.HIDDEN_TEAM) == null, "names are still hidden after the game");
+		});
+		t += down + protect;
+		helper.runAfterDelay(t, () -> {
+			BlockPos pad = helper.absolutePos(new BlockPos(30, 1, 2));
+			check(helper, !Game.isDown(blue) && blue.distanceToSqr(Vec3.atCenterOf(pad)) > 25, "the tagged bot went back to base, though the game said stay: " + blue.position());
 		});
 		t += down + protect;
 

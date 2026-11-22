@@ -64,7 +64,7 @@ send() { docker exec -u 0 "$NAME" send-command "$@"; }
 send tickingarea add circle 8 -60 20 4 lasertag_player true
 sleep 20
 send scriptevent lasertag:playertest
-for _ in $(seq 90); do
+for _ in $(seq 240); do
   docker logs "$NAME" 2>&1 | grep -qE "\[Player test\] (PASS|FAIL)" && break
   sleep 2
 done

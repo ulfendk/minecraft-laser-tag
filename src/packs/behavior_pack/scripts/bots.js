@@ -84,6 +84,8 @@ export function spawnGameBots(game, at, bots) {
       n[team] = (n[team] ?? 0) + 1;
       bot.addTag(GAME_BOT_TAG);
       joinTeam(bot, team, `${teamLabel(team)} Bot ${n[team]}§r`);
+      // Without a pad, where it started is its base.
+      if (!pad && game.bases) game.bases[`${teamLabel(team)} Bot ${n[team]}§r`] = { ...where, dim: at.dimension.id };
     } catch {}
   }
 }

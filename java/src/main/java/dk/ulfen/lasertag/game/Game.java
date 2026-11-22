@@ -62,7 +62,9 @@ import net.minecraft.world.level.saveddata.SavedDataType;
 import net.minecraft.world.scores.DisplaySlot;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.ScoreHolder;
+import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
+import net.minecraft.world.scores.Team;
 import net.minecraft.world.scores.criteria.ObjectiveCriteria;
 import org.joml.Vector3f;
 import org.jspecify.annotations.Nullable;
@@ -77,6 +79,7 @@ public final class Game {
 	public static final String SIGN_TAG = "lasertag_sign";
 	private static final Map<UUID, Display.TextDisplay> SIGNS = new HashMap<>();
 	public static final String GAME_BOT_TAG = "lasertag_game_bot";
+	public static final String HIDDEN_TEAM = "lasertag_hidden";
 	private static final String OBJECTIVE = "lasertag";
 	private static final Gson GSON = new Gson();
 
@@ -251,7 +254,8 @@ public final class Game {
 		DOWN_UNTIL.remove(e.getUUID());
 		wakeUp(e);
 		if (e instanceof LaserBot bot) bot.setDown(false);
-		respawn(e);
+		// Back to base, unless the game says to carry on from where you were tagged.
+		if (game == null || !"stay".equals(game.afterTag)) respawn(e);
 		PROTECT_UNTIL.put(e.getUUID(), now() + Math.round(R().tag().protect() * 20));
 		sound(e, SoundEvents.BEACON_ACTIVATE, 1.6F);
 	}
@@ -305,13 +309,22 @@ public final class Game {
 	}
 
 	/** Send `e` to one of its team's spawn pads. */
+	/**
+	 * Send `e` to its base: one of its team's spawn pads (in its dimension), or else, in a
+	 * game, where it stood when the game started.
+	 */
 	public static boolean respawn(Entity e) {
 		String team = teamOf(e);
 		if (team == null || !(e.level() instanceof ServerLevel level)) return false;
 		List<BlockPos> pads = Arena.padsOf(team, level);
-		if (pads.isEmpty()) return false;
-		BlockPos pad = pads.get(level.getRandom().nextInt(pads.size()));
-		e.teleportTo(pad.getX() + 0.5, pad.getY() + 1, pad.getZ() + 0.5);
+		if (!pads.isEmpty()) {
+			BlockPos pad = pads.get(level.getRandom().nextInt(pads.size()));
+			e.teleportTo(pad.getX() + 0.5, pad.getY() + 1, pad.getZ() + 0.5);
+			return true;
+		}
+		double[] base = game != null && game.bases != null ? game.bases.get(nameOf(e)) : null;
+		if (base == null) return false;
+		e.teleportTo(base[0], base[1], base[2]);
 		return true;
 	}
 
@@ -354,10 +367,17 @@ public final class Game {
 	/** Start a game at the console at `pos`: `bots` per team, `skill` theirs. False if one is on already. */
 	public static boolean start(ServerLevel level, BlockPos pos, String mode, int minutes, int scoreLimit, int teams, Map<String, Integer> bots,
 			@Nullable String skill, @Nullable ServerPlayer starter) {
+		return start(level, pos, mode, minutes, scoreLimit, teams, bots, skill, "base", starter);
+	}
+
+	/** As above, and `afterTag`: base (back to base once the stun is over) or stay (carry on from where you were tagged). */
+	public static boolean start(ServerLevel level, BlockPos pos, String mode, int minutes, int scoreLimit, int teams, Map<String, Integer> bots,
+			@Nullable String skill, @Nullable String afterTag, @Nullable ServerPlayer starter) {
 		if (game != null && !game.phase.equals("over")) return false;
 		server = level.getServer();
 		game = GameLogic.newGame(mode, minutes, scoreLimit, teams);
 		game.skill = GameLogic.botSkill(skill);
+		game.afterTag = "stay".equals(afterTag) ? "stay" : "base";
 		game.dim = level.dimension().identifier().toString();
 		game.x = pos.getX();
 		game.y = pos.getY();
@@ -377,7 +397,10 @@ public final class Game {
 		removeGameBots(level);
 		spawnGameBots(level, pos, bots);
 		for (ServerPlayer p : players()) {
-			if (p.level() == level && Math.hypot(p.getX() - pos.getX(), p.getZ() - pos.getZ()) <= R().console().reach()) respawn(p);
+			// Without a pad, where they stand is their base.
+			if (p.level() == level && Math.hypot(p.getX() - pos.getX(), p.getZ() - pos.getZ()) <= R().console().reach() && !respawn(p)) {
+				game.bases.put(nameOf(p), new double[] {p.getX(), p.getY(), p.getZ()});
+			}
 		}
 		broadcast(Component.translatable("lasertag.started", starter != null ? starter.getName() : Component.literal("Laser Tag"),
 			Component.translatable("lasertag.mode." + game.mode), String.valueOf(game.left / 60), String.valueOf(game.scoreLimit)));
@@ -405,7 +428,10 @@ public final class Game {
 			LaserBot bot = LaserRegistry.LASER_BOT.create(level, EntitySpawnReason.EVENT);
 			if (bot == null) continue;
 			if (pad != null) bot.setPos(pad.getX() + 0.5, pad.getY() + 1, pad.getZ() + 0.5);
-			else bot.setPos(at.getX() + 0.5 + Math.cos(a) * 4, at.getY() + 1, at.getZ() + 0.5 + Math.sin(a) * 4);
+			else {
+				bot.setPos(at.getX() + 0.5 + Math.cos(a) * 4, at.getY() + 1, at.getZ() + 0.5 + Math.sin(a) * 4);
+				game.bases.put(teamLabel(team) + " Bot " + (n.getOrDefault(team, 0) + 1), new double[] {bot.getX(), bot.getY(), bot.getZ()});
+			}
 			int k = n.merge(team, 1, Integer::sum);
 			bot.setTeam(team);
 			bot.addTag(GAME_BOT_TAG);
@@ -500,6 +526,7 @@ public final class Game {
 		if (best != null) broadcast(Component.translatable("lasertag.mvp", Component.literal(best).withStyle(ChatFormatting.GOLD)));
 		fireworks(winner);
 		clearAt = now() + 200;
+		hideNames();
 	}
 
 	private static void fireworks(@Nullable String winner) {
@@ -528,6 +555,7 @@ public final class Game {
 
 	private static void updateScoreboard() {
 		if (server == null || game == null) return;
+		hideNames();
 		Scoreboard board = server.getScoreboard();
 		Objective obj = board.getObjective(OBJECTIVE);
 		if (obj == null) return;
@@ -543,6 +571,29 @@ public final class Game {
 		if (server == null) return;
 		Objective obj = server.getScoreboard().getObjective(OBJECTIVE);
 		if (obj != null) server.getScoreboard().removeObjective(obj);
+		hideNames();
+	}
+
+	/**
+	 * Hide every player's name while a game is on (a name above your head gives away where
+	 * you are), with a scoreboard team that shows no name tags, and give them back after.
+	 * Players already in another team keep it.
+	 */
+	public static void hideNames() {
+		if (server == null) return;
+		Scoreboard board = server.getScoreboard();
+		PlayerTeam team = board.getPlayerTeam(HIDDEN_TEAM);
+		if (game == null || game.phase.equals("over")) {
+			if (team != null) board.removePlayerTeam(team);
+			return;
+		}
+		if (team == null) {
+			team = board.addPlayerTeam(HIDDEN_TEAM);
+			team.setNameTagVisibility(Team.Visibility.NEVER);
+		}
+		for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+			if (board.getPlayersTeam(p.getScoreboardName()) == null) board.addPlayerToTeam(p.getScoreboardName(), team);
+		}
 	}
 
 	private static Component hud(ServerPlayer p) {
@@ -699,6 +750,7 @@ public final class Game {
 
 	private static void load(MinecraftServer srv) {
 		server = srv;
+		Arena.load(srv);
 		Save s = srv.overworld().getDataStorage().computeIfAbsent(Save.TYPE);
 		try {
 			game = s.json.isEmpty() ? null : GSON.fromJson(s.json, GameLogic.State.class);
