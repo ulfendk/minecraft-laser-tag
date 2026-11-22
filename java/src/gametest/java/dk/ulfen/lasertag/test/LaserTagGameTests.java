@@ -19,11 +19,19 @@ import dk.ulfen.lasertag.game.Arena;
 import dk.ulfen.lasertag.game.Game;
 import dk.ulfen.lasertag.game.GameLogic;
 import dk.ulfen.lasertag.game.Lasers;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 
@@ -210,6 +218,19 @@ public class LaserTagGameTests {
 			check(helper, "tagged".equals(Lasers.fireRay(red, red.getEyePosition(), aim(red, blue), 20)), "a laser did not tag a bot of another team");
 			check(helper, Game.isDown(blue) && blue.isDown(), "the tagged bot is not out");
 			check(helper, Game.tag(red, red2) == null, "a bot tagged its own team");
+			// A tagged player is frozen: nothing to throw or use, and what they drop comes back.
+			ServerPlayer kid = helper.makeMockServerPlayerInLevel();
+			Vec3 k = helper.absoluteVec(new Vec3(6.5, 1, 40.5));
+			kid.snapTo(k.x, k.y, k.z);
+			kid.setItemSlot(EquipmentSlot.CHEST, new ItemStack(LaserRegistry.VESTS.get("blue")));
+			kid.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.SNOWBALL, 4));
+			check(helper, "tagged".equals(Game.tag(red, kid)) && Game.isDown(kid), "the player was not tagged");
+			check(helper, UseItemCallback.EVENT.invoker().interact(kid, level, InteractionHand.MAIN_HAND) == InteractionResult.FAIL, "a tagged player could throw");
+			ItemEntity dropped = new ItemEntity(level, kid.getX(), kid.getEyeY(), kid.getZ(), new ItemStack(Items.EGG, 3));
+			dropped.setThrower(kid);
+			level.addFreshEntity(dropped);
+			check(helper, dropped.isRemoved() && kid.getInventory().countItem(Items.EGG) == 3, "what a tagged player dropped did not come back");
+			kid.discard();
 		});
 		helper.runAfterDelay(t + 4, () -> {
 			var sign = Game.signOf(blue);

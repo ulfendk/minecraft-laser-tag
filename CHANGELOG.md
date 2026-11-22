@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.1] - 2026-11-22
+
+### Fixed
+- A tagged player is now completely frozen: they can't throw, fire, eat or use anything, or use or place blocks, until they are back. Anything they drop goes straight back into their inventory.
+
 ## [0.4.0] - 2026-11-22
 
 ### Added

@@ -18,6 +18,8 @@ import com.mojang.math.Transformation;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -36,6 +38,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Display;
@@ -46,6 +49,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.FireworkRocketEntity;
 import net.minecraft.world.item.ItemStack;
@@ -718,7 +722,15 @@ public final class Game {
 		// A sign left over from before a restart (or a crash) belongs to nobody.
 		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
 			if (entity.entityTags().contains(SIGN_TAG) && !SIGNS.containsValue(entity)) entity.discard();
+			// Frozen while tagged: what you drop comes back to you.
+			if (entity instanceof ItemEntity item && item.getOwner() instanceof ServerPlayer p && isDown(p)) {
+				p.getInventory().add(item.getItem());
+				if (item.getItem().isEmpty()) item.discard();
+			}
 		});
+		// Frozen while tagged: nothing to throw, fire, eat, use or place until you are back.
+		UseItemCallback.EVENT.register((player, level, hand) -> !level.isClientSide() && isDown(player) ? InteractionResult.FAIL : InteractionResult.PASS);
+		UseBlockCallback.EVENT.register((player, level, hand, hit) -> !level.isClientSide() && isDown(player) ? InteractionResult.FAIL : InteractionResult.PASS);
 		ServerLifecycleEvents.SERVER_STOPPED.register(srv -> {
 			game = null;
 			server = null;

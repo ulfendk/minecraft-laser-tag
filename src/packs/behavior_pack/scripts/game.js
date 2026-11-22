@@ -521,6 +521,24 @@ export function setupGame() {
       } catch {}
     }
   }, 10);
+  // Frozen while tagged: nothing to throw, fire, eat, use or place until you are back.
+  world.beforeEvents.itemUse.subscribe((e) => {
+    if (isDown(e.source)) e.cancel = true;
+  });
+  world.beforeEvents.playerInteractWithBlock.subscribe((e) => {
+    if (isDown(e.player)) e.cancel = true;
+  });
+  // ... and what you drop comes back to you (Bedrock doesn't say who dropped it: the one
+  // tagged whose hands it left).
+  world.afterEvents.entitySpawn.subscribe(({ entity }) => {
+    if (entity?.typeId !== 'minecraft:item') return;
+    const p = entity.dimension.getPlayers({ location: entity.location, maxDistance: 2, closest: 1 })[0];
+    if (!p || !isDown(p)) return;
+    try {
+      const stack = entity.getComponent('minecraft:item')?.itemStack;
+      if (stack && !p.getComponent('minecraft:inventory')?.container?.addItem(stack)) entity.remove();
+    } catch {}
+  });
   // Left while tagged: free to move when you are back.
   world.afterEvents.playerSpawn.subscribe(({ player, initialSpawn }) => {
     if (initialSpawn && !isDown(player)) wakeUp(player);
