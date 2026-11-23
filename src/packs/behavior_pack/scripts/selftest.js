@@ -9,7 +9,7 @@ import { BlockPermutation, ItemStack, system, world } from '@minecraft/server';
 import { BLOCKS, CREATURES, ITEMS, RULES } from './data.js';
 import { alarming, padsOf, soundSiren, toggleSmoke } from './arena.js';
 import { counts, joinTeam } from './bots.js';
-import { current, givePowerup, isDown, isProtected, startGame, stopGame, tag } from './game.js';
+import { current, givePowerup, heatOf, isDown, isProtected, startGame, stopGame, tag } from './game.js';
 import { fire, fireRay, pulse } from './guns.js';
 import { BOT, dist, DOWN_TAG, GAME_BOT_TAG, LOG, nameOf, norm, NS, SIGN, sub, teamOf } from './util.js';
 
@@ -103,6 +103,12 @@ async function selfTest() {
   check(fire(red2, 'laser_rifle') && !fire(red2, 'laser_rifle'), 'a gun did not fire, or fired again at once');
   await later(Math.round(RULES.guns.laser_rifle.cooldown * 20) + 1);
   check(fire(red2, 'laser_rifle'), 'a gun did not fire again after its cooldown');
+  // The spread cannon fires once, then has to reload; it never heats up.
+  const heatBefore = heatOf(red2).heat;
+  check(fire(red2, 'spread_cannon') && !fire(red2, 'spread_cannon'), 'the spread cannon did not fire, or fired again before reloading');
+  check(heatOf(red2).heat === heatBefore, 'the spread cannon heated up');
+  await later(Math.round(RULES.guns.laser_rifle.cooldown * 20) + 1);
+  check(!fire(red2, 'spread_cannon'), 'the spread cannon reloaded as fast as the rifle');
 
   // A wall stops a laser.
   blue.teleport({ x: 14.5, y: Y, z: 44.5 });

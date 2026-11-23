@@ -11,6 +11,7 @@ import java.util.Map;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The numbers shared with the Bedrock add-on, generated from src/rules.mjs and
@@ -29,8 +30,13 @@ public final class LaserData {
 		}
 	}
 
-	/** A laser gun: `range` in blocks, `cooldown` seconds between shots, `heat` per shot, `spread` in degrees. */
-	public record Gun(float range, float cooldown, float heat, int rays, float spread, int points, boolean zoom) {}
+	/**
+	 * A laser gun: `range` in blocks, `cooldown` seconds between shots, `heat` per shot, `spread` in
+	 * degrees. The sniper has `scope` (the field of view at each zoom level) and `sway`; the spread
+	 * cannon has `recoil`.
+	 */
+	public record Gun(float range, float cooldown, float heat, int rays, float spread, int points, boolean zoom,
+		@Nullable List<Float> scope, float sway, float recoil) {}
 
 	public record Heat(float max, float coolPerSecond, float overheatCoolPerSecond) {}
 

@@ -106,7 +106,7 @@ public final class Game {
 		return game != null && game.phase.equals("running");
 	}
 
-	private static long now() {
+	public static long now() {
 		return server == null ? 0 : server.getTickCount();
 	}
 
@@ -700,6 +700,7 @@ public final class Game {
 				else e.setValue(GameLogic.cool(e.getValue(), 0.1));
 			}
 		}
+		Lasers.tick(t);
 		if (t % 5 == 0) droppedFlags();
 		if (t % 5 == 0) {
 			// The rifle zooms in while you sneak.

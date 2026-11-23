@@ -17,6 +17,7 @@ import dk.ulfen.lasertag.entity.LaserBot;
 import dk.ulfen.lasertag.entity.PulseGrenade;
 import dk.ulfen.lasertag.item.LaserGunItem;
 import dk.ulfen.lasertag.item.PulseGrenadeItem;
+import dk.ulfen.lasertag.item.SniperItem;
 import dk.ulfen.lasertag.item.VestItem;
 import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
@@ -46,7 +47,9 @@ import net.minecraft.world.level.material.MapColor;
 
 /** Everything the mod adds to the game registries. */
 public final class LaserRegistry {
-	public static final List<String> GUNS = List.of("laser_pistol", "laser_blaster", "laser_rifle", "scatter_laser");
+	public static final List<String> GUNS = List.of("laser_pistol", "laser_blaster", "laser_rifle", "scatter_laser", "laser_sniper", "spread_cannon");
+	/** The gun that fires through a scope (dk.ulfen.lasertag.item.SniperItem). */
+	public static final String SNIPER = "laser_sniper";
 	public static final List<String> NEON = List.of("white", "red", "blue", "green", "yellow", "cyan", "magenta");
 
 	public static EntityType<LaserBot> LASER_BOT;
@@ -79,7 +82,9 @@ public final class LaserRegistry {
 		PULSE_GRENADE_ENTITY = entity("pulse_grenade", EntityType.Builder.<PulseGrenade>of(PulseGrenade::new, MobCategory.MISC).noLootTable().sized(0.25F, 0.25F).clientTrackingRange(4).updateInterval(10));
 
 		for (String gun : GUNS) {
-			GUN_ITEMS.put(gun, item(gun, p -> new LaserGunItem(p, gun), new Item.Properties().stacksTo(1).useCooldown(LaserData.rules().guns().get(gun).cooldown())));
+			// The sniper's first use raises the scope, so its cooldown starts when it fires (Lasers.fire).
+			if (gun.equals(SNIPER)) GUN_ITEMS.put(gun, item(gun, p -> new SniperItem(p, gun), new Item.Properties().stacksTo(1)));
+			else GUN_ITEMS.put(gun, item(gun, p -> new LaserGunItem(p, gun), new Item.Properties().stacksTo(1).useCooldown(LaserData.rules().guns().get(gun).cooldown())));
 		}
 		PULSE_GRENADE = item("pulse_grenade", PulseGrenadeItem::new, new Item.Properties().stacksTo(16));
 		for (String team : LaserData.rules().teams()) {

@@ -55,6 +55,7 @@ function page(lang) {
     if (id === RULES.grenade.id) return [[t.statRadius, t.blocks_(RULES.grenade.radius)]];
     const g = RULES.guns[id];
     const rate = Math.round((10 / g.cooldown)) / 10;
+    if (!g.heat) return [[t.statRange, t.blocks_(g.range)], [t.statReload, t.seconds_(g.cooldown)]];
     return [[t.statRange, t.blocks_(g.range)], [t.statRate, String(rate).replace('.', lang === 'da' ? ',' : '.')], [t.statHeat, String(Math.ceil(RULES.heat.max / g.heat))]];
   };
   const gunHtml = Object.entries(t.guns).map(([id, text]) => `

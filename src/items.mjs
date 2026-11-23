@@ -14,12 +14,12 @@ export const TEAM_NAMES = {
 };
 const DYES = { red: 'red_dye', blue: 'blue_dye', green: 'lime_dye', yellow: 'yellow_dye' };
 
-const gun = (id, name) => ({
+const gun = (id, name, cooldown = RULES.guns[id].cooldown) => ({
   id, name, category: 'equipment', stack: 1, handheld: true, kind: 'gun',
   components: {
     'minecraft:hand_equipped': true,
     // Fired from scripts/guns.js; the cooldown keeps one click one shot.
-    'minecraft:cooldown': { category: `${NS}:${id}`, duration: RULES.guns[id].cooldown },
+    'minecraft:cooldown': { category: `${NS}:${id}`, duration: cooldown },
   },
 });
 
@@ -28,6 +28,9 @@ export const ITEMS = [
   gun('laser_blaster', ['Laser Blaster', 'Laserblaster']),
   gun('laser_rifle', ['Laser Rifle', 'Lasergevær']),
   gun('scatter_laser', ['Scatter Laser', 'Spredelaser']),
+  // The first click raises the scope, so the bolt's cycle is kept by the script alone.
+  gun('laser_sniper', ['Laser Sniper', 'Lasersnigskytte'], 0.25),
+  gun('spread_cannon', ['Spread Cannon', 'Spredekanon']),
   {
     id: RULES.grenade.id, name: ['Pulse Grenade', 'Pulsgranat'], category: 'equipment', stack: 16, kind: 'grenade',
     components: {
@@ -77,6 +80,8 @@ export const RECIPES = [
   shaped('laser_blaster', ['IIA', 'RIG'], { I, A, R, G }),
   shaped('laser_rifle', ['  G', 'IIA', 'R  '], { G, I, A, R }),
   shaped('scatter_laser', [' AA', 'IIA', 'R  '], { A, I, R }),
+  shaped('laser_sniper', ['SGG', 'IIA', 'R  '], { S: 'spyglass', G, I, A, R }),
+  shaped('spread_cannon', ['AAA', 'IIA', 'RI '], { A, I, R }),
   shaped(RULES.grenade.id, [' I ', 'IRI', ' A '], { I, R, A }, 4),
   ...TEAMS.map((t) => shaped(`vest_${t}`, ['L L', 'DRD', 'LLL'], { L: 'leather', D: DYES[t], R }, 1)),
 ];

@@ -75,3 +75,9 @@ jar {
 		rename { "${it}_laser-tag" }
 	}
 }
+
+// Spawn pads are saved with the world, so each game test run starts from a fresh one.
+def gameTestWorld = layout.buildDirectory.dir('run/gameTest/world')
+tasks.matching { it.name == 'runGameTest' }.configureEach {
+	doFirst { gameTestWorld.get().asFile.deleteDir() }
+}

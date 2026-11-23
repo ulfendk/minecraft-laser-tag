@@ -100,9 +100,50 @@ export function announce(key, ...args) {
 }
 
 export function title(player, text, subtitle, stay = 30) {
+  const o = overlays.get(player.id);
+  if (o) o.title = { text, subtitle, until: now() + stay + 8 };
+  showTitle(player, o ? withCode(o.code, text) : text, subtitle, stay);
+}
+
+function showTitle(player, text, subtitle, stay) {
   try {
     player.onScreenDisplay.setTitle(text, { subtitle, fadeInDuration: 2, stayDuration: stay, fadeOutDuration: 6 });
   } catch {}
+}
+
+// The scope overlay is switched on by a title made only of formatting codes (src/hud.mjs).
+// A title shown meanwhile carries the code too, and the overlay's own title comes back
+// once that title has gone.
+/** Player id -> { code, title: { text, subtitle, until } }. */
+const overlays = new Map();
+
+const withCode = (code, text) => (typeof text === 'string' ? `${code}${text}` : { rawtext: [{ text: code }, ...(text?.rawtext ?? [text])] });
+
+function showOverlay(player, code) {
+  try {
+    // clearTitle() can leave the old text in the HUD's title binding, so overwrite it.
+    if (!code) player.onScreenDisplay.setTitle('§r', { fadeInDuration: 0, stayDuration: 1, fadeOutDuration: 0 });
+    else player.onScreenDisplay.setTitle(code, { fadeInDuration: 0, stayDuration: 72000, fadeOutDuration: 0 });
+  } catch {}
+}
+
+/** Show the HUD overlay with this code for `player`, or none (`undefined`). */
+export function setOverlay(player, code) {
+  const old = overlays.get(player.id);
+  if (code) overlays.set(player.id, { code, title: old?.title });
+  else overlays.delete(player.id);
+  const left = (old?.title?.until ?? 0) - now();
+  // A title still on screen is shown again, with or without the code.
+  if (left > 8) showTitle(player, code ? withCode(code, old.title.text) : old.title.text, old.title.subtitle, left - 8);
+  else showOverlay(player, code);
+}
+
+/** Every tick while an overlay is up: bring its title back once another title has gone. */
+export function keepOverlay(player) {
+  const o = overlays.get(player.id);
+  if (!o?.title || o.title.until > now()) return;
+  o.title = undefined;
+  showOverlay(player, o.code);
 }
 
 export function sound(entity, id, pitch = 1, volume = 1) {

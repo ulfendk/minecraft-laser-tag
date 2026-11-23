@@ -23,5 +23,11 @@
 		"java": ">=25",
 		"fabric-api": "*",
 		"geckolib": ">=5.5"
-	}
+	},
+	"mixins": [
+		{
+			"config": "lasertag.client.mixins.json",
+			"environment": "client"
+		}
+	]
 }

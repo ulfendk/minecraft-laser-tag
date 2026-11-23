@@ -1,10 +1,15 @@
 package dk.ulfen.lasertag.game;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import dk.ulfen.lasertag.LaserData;
 import dk.ulfen.lasertag.entity.LaserBot;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
@@ -29,6 +34,24 @@ public final class Lasers {
 
 	private static LaserData.Rules R() {
 		return LaserData.rules();
+	}
+
+	public static LaserData.Gun gun(String id) {
+		return R().guns().get(id);
+	}
+
+	/** Sounds to play later: the sniper's bolt, the spread cannon's reload. Run from Game.tick. */
+	private record Later(long at, ServerPlayer player, SoundEvent sound, float volume, float pitch) {}
+
+	private static final List<Later> LATER = new ArrayList<>();
+
+	public static void tick(long now) {
+		for (var it = LATER.iterator(); it.hasNext();) {
+			Later l = it.next();
+			if (l.at() > now) continue;
+			it.remove();
+			if (!l.player().isRemoved()) l.player().level().playSound(null, l.player().blockPosition(), l.sound(), SoundSource.PLAYERS, l.volume(), l.pitch());
+		}
 	}
 
 	private static int colour(@Nullable String team) {
@@ -117,10 +140,30 @@ public final class Lasers {
 			case "laser_pistol" -> 2.0F;
 			case "laser_blaster" -> 1.7F;
 			case "laser_rifle" -> 1.2F;
+			case "laser_sniper" -> 0.9F;
+			case "spread_cannon" -> 0.6F;
 			default -> 1.4F;
 		};
-		player.level().playSound(null, player.blockPosition(), SoundEvents.SHULKER_SHOOT, SoundSource.PLAYERS, 0.7F, pitch);
+		player.level().playSound(null, player.blockPosition(), SoundEvents.SHULKER_SHOOT, SoundSource.PLAYERS, gunId.equals("spread_cannon") ? 1.0F : 0.7F, pitch);
+		afterShot(player, gunId, view);
 		return true;
+	}
+
+	/** The sniper's bolt, and the spread cannon's kick and reload. */
+	private static void afterShot(ServerPlayer player, String gunId, Vec3 view) {
+		LaserData.Gun g = gun(gunId);
+		long now = Game.now();
+		if (gunId.equals("laser_sniper")) LATER.add(new Later(now + Math.round(g.cooldown() * 12), player, SoundEvents.UI_BUTTON_CLICK.value(), 0.3F, 0.8F));
+		if (gunId.equals("spread_cannon")) {
+			player.level().playSound(null, player.blockPosition(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.35F, 1.8F);
+			double h = Math.max(1e-3, Math.hypot(view.x, view.z));
+			player.push(-view.x / h * g.recoil(), 0.15, -view.z / h * g.recoil());
+			player.connection.send(new ClientboundSetEntityMotionPacket(player));
+			Game.flash(player, "hud.reloading");
+			long done = now + Math.round(g.cooldown() * 20);
+			LATER.add(new Later(done, player, SoundEvents.UI_BUTTON_CLICK.value(), 0.5F, 1.1F));
+			LATER.add(new Later(done, player, SoundEvents.BEACON_ACTIVATE, 0.4F, 2.0F));
+		}
 	}
 
 	/** A bot fires at `target` (if its skill takes the shot): usually on target, now and then a block or so off. */

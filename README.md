@@ -17,8 +17,11 @@ Laser tag for Minecraft – a **Bedrock add-on** and a **Java Edition mod (Fabri
 | Laser Blaster | 40 blocks | 0.45 s | 8 |
 | Laser Rifle (sneak to zoom) | 80 blocks | 1.4 s | 3 |
 | Scatter Laser (5 beams) | 12 blocks | 0.9 s | 4 |
+| Laser Sniper (scoped: 2×, 5×, 12×) | 160 blocks | 1.8 s | 3 |
+| Spread Cannon (15 beams, recoil) | 20 blocks | 6 s reload | never overheats |
 | Pulse Grenade (thrown) | 3.5 blocks round where it lands | – | – |
 
+- **Laser Sniper**: scoped like the rifles in [Realistic Hunting](https://ulfendk.github.io/minecraft-hunting/). On Bedrock, use it to raise the scope and use it again to fire. On Java, hold right-click to aim and left-click to fire. Tap sneak to zoom, hold sneak to hold your breath and steady the sway, and jump or switch items to lower it.
 - **Vests** in red, blue, green and yellow: the vest is your team. If you have no vest, you can't fire and can't be tagged.
 - **Being tagged**: you are out for 4 s (slowed, can't fire), then you come back on one of your team's spawn pads. You can't be tagged for 3 s after that. Friendly fire is off.
 - **Game Console**: use it to choose the mode, minutes, score to win, 2–4 teams, 0–4 bots on each team (say two kids a side with two bots each) and how good the bots are (easy, normal, hard), and whether a tagged player goes back to base or carries on where they are, then start. On Bedrock this is a form that remembers the last game; on Java, a clickable menu in chat. Use it again to stop the game.

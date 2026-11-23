@@ -10,5 +10,7 @@ public class LaserTagClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		EntityRenderers.register(LaserRegistry.LASER_BOT, BotRenderer::new);
 		EntityRenderers.register(LaserRegistry.PULSE_GRENADE_ENTITY, ThrownItemRenderer::new);
+		ScopeClient.init();
+		ScopeHud.init();
 	}
 }

@@ -9,6 +9,7 @@ import {
 } from './logic.js';
 import { padsOf, pointCounts, resetArena, showFlag } from './arena.js';
 import { spawnGameBots, removeGameBots } from './bots.js';
+import { scopeText } from './guns.js';
 import {
   announce, BOT, colour, coloured, DOWN_TAG, isBot, isPlayer, LOG, nameOf, NS, now, plainName, SIGN, sound, teamOf, TEAMS, title, tr,
 } from './util.js';
@@ -427,6 +428,8 @@ function hud(player) {
   const h = heatOf(player);
   if (h.overheated) return tr('hud.overheated');
   const parts = [];
+  const scope = scopeText(player);
+  if (scope) parts.push(scope);
   if (game && game.phase === 'running') {
     parts.push(tr('hud.time', clockText(game.left)));
     const top = standings(game).slice(0, 4);

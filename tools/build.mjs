@@ -10,6 +10,7 @@ import { buildItem, ITEMS, RECIPES } from '../src/items.mjs';
 import { langEntries, LOCALES } from '../src/i18n.mjs';
 import { RULES, TEAMS } from '../src/rules.mjs';
 import { vestLayer } from '../src/art.mjs';
+import { black, hudScreen, SCOPE_CODE, scopeTexture } from '../src/hud.mjs';
 import { animationFile } from '../src/lib/anim.mjs';
 import {
   buildAnimationControllers, buildBot, buildBotRenderController, buildClientEntity, buildEntitySounds,
@@ -219,6 +220,11 @@ export async function build({ quiet = false } = {}) {
       await write(join(RP, 'attachables', `${item.id}.json`), attachable(item));
     }
   }
+  // The sniper's scope overlay.
+  await write(join(RP, 'ui', 'hud_screen.json'), hudScreen());
+  await write(join(RP, 'textures', 'ui', NS, 'scope.png'), scopeTexture());
+  await write(join(RP, 'textures', 'ui', NS, 'black.png'), black());
+
   await write(join(RP, 'textures', 'item_texture.json'), { resource_pack_name: NS, texture_name: 'atlas.items', texture_data: itemTextures });
 
   // Blocks
@@ -250,6 +256,7 @@ export async function build({ quiet = false } = {}) {
     `export const BLOCKS = ${JSON.stringify(BLOCKS.map((b) => ({ id: `${NS}:${b.id}`, kind: b.kind ?? null, team: b.team ?? null })))};`,
     `export const CREATURES = ${JSON.stringify(CREATURES.map((c) => `${NS}:${c.id}`))};`,
     `export const PROJECTILES = ${JSON.stringify(PROJECTILES.map((p) => `${NS}:${p.id}`))};`,
+    `export const SCOPE_CODE = ${JSON.stringify(SCOPE_CODE)};`,
     '',
   ].join('\n'));
   const logic = await readFile(join(ROOT, 'src', 'lib', 'game.mjs'), 'utf8');

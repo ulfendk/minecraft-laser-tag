@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.0] - 2026-11-23
+
+### Added
+- Laser Sniper: a scoped laser that reaches 160 blocks, scoped like the rifles in Realistic Hunting. On Bedrock, use it once to raise the scope and again to fire. On Java, hold right-click to aim and left-click to fire. Tap sneak for 2×, 5× and 12× zoom, and hold sneak to hold your breath and steady the sway. The scope shows the range to whatever is under the crosshair. Jump or switch items to lower it.
+- Spread Cannon: one blast of 15 beams in a wide cone that can tag a whole group at once. It never overheats, but it kicks you back and takes 6 seconds to reload.
+
+### Fixed
+- The Java game tests start from a fresh world each time, so saved spawn pads from an earlier run no longer make them fail.
+
 ## [0.6.0] - 2026-11-22
 
 ### Added

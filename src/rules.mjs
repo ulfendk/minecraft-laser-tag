@@ -19,11 +19,16 @@ export const RULES = {
 
   // The lasers: hitscan rays. `heat` is added per shot; at 100 the gun overheats and
   // can't fire until it has cooled right down. `cooldown` is the time between shots.
+  // The sniper fires only through its scope: `scope` is the field of view (degrees) at each
+  // zoom level and `sway` how much it drifts. The spread cannon doesn't heat up: after a
+  // shot it has to reload for `cooldown` seconds, and `recoil` pushes the shooter back.
   guns: {
     laser_pistol: { range: 24, cooldown: 0.25, heat: 9, rays: 1, spread: 0.6, points: 1 },
     laser_blaster: { range: 40, cooldown: 0.45, heat: 14, rays: 1, spread: 0.3, points: 1 },
     laser_rifle: { range: 80, cooldown: 1.4, heat: 34, rays: 1, spread: 0, points: 1, zoom: true },
     scatter_laser: { range: 12, cooldown: 0.9, heat: 30, rays: 5, spread: 7, points: 1 },
+    laser_sniper: { range: 160, cooldown: 1.8, heat: 45, rays: 1, spread: 0, points: 1, scope: [30, 14, 6], sway: 1 },
+    spread_cannon: { range: 20, cooldown: 6, heat: 0, rays: 15, spread: 12, points: 1, recoil: 0.9 },
   },
   heat: { max: 100, coolPerSecond: 35, overheatCoolPerSecond: 25 },
   grenade: { id: 'pulse_grenade', radius: 3.5, fuse: 0 },

@@ -15,7 +15,7 @@ function player(name, x, z, team, mode = GameMode.Survival, vest = true) {
   return p;
 }
 
-/** One shot: `shooter` aims `gun` at a blue target `gap` blocks away and clicks. */
+/** One shot: `shooter` aims `gun` at a blue target `gap` blocks away and clicks (twice for the sniper: scope, fire). */
 async function shot(name, { gun = 'laser_blaster', gap = 6, wall = false, mode = GameMode.Survival, z = 20.5, vest = true } = {}) {
   const dimension = world.getDimension('overworld');
   const shooter = player(`S ${name}`, 4.5, z, 'red', mode, vest);
@@ -26,7 +26,12 @@ async function shot(name, { gun = 'laser_blaster', gap = 6, wall = false, mode =
   shooter.selectedSlotIndex = 0;
   shooter.lookAtEntity(target);
   await later(5);
-  const used = shooter.useItemInSlot(0);
+  let used = shooter.useItemInSlot(0);
+  if (gun === 'laser_sniper') {
+    await later(10);
+    shooter.lookAtEntity(target);
+    used = shooter.useItemInSlot(0) && used;
+  }
   await later(10);
   const ok = target.hasTag(DOWN);
   console.log(`${LOG} ${name}: used ${used}, target tagged ${ok}`);
@@ -39,7 +44,9 @@ async function shot(name, { gun = 'laser_blaster', gap = 6, wall = false, mode =
 async function run() {
   if (typeof gametest.spawnSimulatedPlayer !== 'function') throw new Error(`no spawnSimulatedPlayer; the module has ${Object.keys(gametest).join(', ')}`);
   const results = [];
-  for (const gun of ['laser_pistol', 'laser_blaster', 'laser_rifle', 'scatter_laser']) results.push(await shot(gun, { gun }));
+  for (const gun of ['laser_pistol', 'laser_blaster', 'laser_rifle', 'scatter_laser', 'laser_sniper', 'spread_cannon']) results.push(await shot(gun, { gun }));
+  // The sniper reaches right across a big arena.
+  results.push(await shot('sniper far', { gun: 'laser_sniper', gap: 90, z: 44.5 }));
   results.push(await shot('close up', { gap: 2, z: 24.5 }));
   results.push(await shot('wall behind', { gap: 3, wall: true, z: 28.5 }));
   results.push(await shot('creative', { mode: GameMode.Creative, z: 32.5 }));
