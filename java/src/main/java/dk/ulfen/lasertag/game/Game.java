@@ -255,7 +255,8 @@ public final class Game {
 		wakeUp(e);
 		if (e instanceof LaserBot bot) bot.setDown(false);
 		// Back to base, unless the game says to carry on from where you were tagged.
-		if (game == null || !"stay".equals(game.afterTag)) respawn(e);
+		// Back to base, unless the game says to stay; bots always go home to their spawn pad.
+		if (e instanceof LaserBot || game == null || !"stay".equals(game.afterTag)) respawn(e);
 		PROTECT_UNTIL.put(e.getUUID(), now() + Math.round(R().tag().protect() * 20));
 		sound(e, SoundEvents.BEACON_ACTIVATE, 1.6F);
 	}
@@ -396,6 +397,7 @@ public final class Game {
 		Arena.reset(server);
 		removeGameBots(level);
 		spawnGameBots(level, pos, bots);
+		hideNames();
 		for (ServerPlayer p : players()) {
 			// Without a pad, where they stand is their base.
 			if (p.level() == level && Math.hypot(p.getX() - pos.getX(), p.getZ() - pos.getZ()) <= R().console().reach() && !respawn(p)) {
@@ -593,6 +595,12 @@ public final class Game {
 		}
 		for (ServerPlayer p : server.getPlayerList().getPlayers()) {
 			if (board.getPlayersTeam(p.getScoreboardName()) == null) board.addPlayerToTeam(p.getScoreboardName(), team);
+		}
+		// The game's bots too.
+		for (ServerLevel level : server.getAllLevels()) {
+			for (Entity bot : level.getEntities(LaserRegistry.LASER_BOT, x -> x.entityTags().contains(GAME_BOT_TAG))) {
+				if (board.getPlayersTeam(bot.getScoreboardName()) == null) board.addPlayerToTeam(bot.getScoreboardName(), team);
+			}
 		}
 	}
 

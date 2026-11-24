@@ -71,10 +71,17 @@ export function teamOf(entity) {
 export const SIGN = '§c§l';
 export const plainName = (nameTag) => (nameTag.startsWith(SIGN) ? nameTag.slice(nameTag.indexOf('\n') + 1) : nameTag);
 
+/** A bot's own name: its name tag is empty while a game hides names. */
+export const BOT_NAME = `${NS}:name`;
+export function botName(bot) {
+  const name = bot.getDynamicProperty(BOT_NAME);
+  return typeof name === 'string' ? name : plainName(bot.nameTag ?? '');
+}
+
 /** How a player or bot is named in scores and messages. */
 export function nameOf(entity) {
   if (isPlayer(entity)) return entity.name;
-  return plainName(entity.nameTag ?? '') || `Bot ${entity.id}`;
+  return botName(entity) || `Bot ${entity.id}`;
 }
 
 /** The colour code of a team's chat text. */

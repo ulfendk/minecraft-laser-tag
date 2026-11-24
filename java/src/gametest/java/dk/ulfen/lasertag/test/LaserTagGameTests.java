@@ -281,6 +281,8 @@ public class LaserTagGameTests {
 			gameBots.forEach(b -> b.setHold(true));
 			long reds = gameBots.stream().filter(b -> "red".equals(b.team())).count();
 			check(helper, gameBots.size() == 3 && reds == 2, gameBots.size() + " game bots, " + reds + " on red, not 2 on red and 1 on blue");
+			var namesOff = level.getServer().getScoreboard().getPlayerTeam(Game.HIDDEN_TEAM);
+			check(helper, namesOff != null && gameBots.stream().allMatch(b -> namesOff.getPlayers().contains(b.getScoreboardName())), "the game's bots show their names during the game");
 			// One of each team goes on; the second red bot stays held.
 			gameBots.sort(java.util.Comparator.comparing(LaserBot::team));
 			gameBots.remove(2);
@@ -316,7 +318,8 @@ public class LaserTagGameTests {
 		t += down + protect;
 		helper.runAfterDelay(t, () -> {
 			BlockPos pad = helper.absolutePos(new BlockPos(30, 1, 2));
-			check(helper, !Game.isDown(blue) && blue.distanceToSqr(Vec3.atCenterOf(pad)) > 25, "the tagged bot went back to base, though the game said stay: " + blue.position());
+			// Stay where you are is for players: a tagged bot always goes home to its spawn pad.
+			check(helper, !Game.isDown(blue) && blue.distanceToSqr(Vec3.atCenterOf(pad)) < 4, "the tagged bot did not go home to its spawn pad: " + blue.position());
 		});
 		t += down + protect;
 

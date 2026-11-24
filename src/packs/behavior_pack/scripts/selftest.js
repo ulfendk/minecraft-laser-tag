@@ -100,6 +100,7 @@ async function selfTest() {
   await later(PROTECT + 5);
 
   // A gun fires once per click, then waits its cooldown out.
+  console.log(`${LOG} selftest: guns`);
   check(fire(red2, 'laser_rifle') && !fire(red2, 'laser_rifle'), 'a gun did not fire, or fired again at once');
   await later(Math.round(RULES.guns.laser_rifle.cooldown * 20) + 1);
   check(fire(red2, 'laser_rifle'), 'a gun did not fire again after its cooldown');
@@ -153,14 +154,18 @@ async function selfTest() {
   gameBots[0].teleport({ x: 12.5, y: Y, z: 4.5 });
   gameBots[1].teleport({ x: 22.5, y: Y, z: 4.5 });
   for (const b of gameBots) b.triggerEvent(`${NS}:up`);
+  check(gameBots.every((b) => (b.nameTag === '' || (b.nameTag.startsWith(SIGN) && !b.nameTag.includes('Bot'))) && nameOf(b).includes('Bot')), `the game's bots show their names during the game (${gameBots.map((b) => JSON.stringify(b.nameTag)).join(', ')})`);
   const shots = () => gameBots.reduce((n, b) => n + (current()?.stats[nameOf(b)]?.shots ?? 0), 0);
   check(await until(() => shots() > 0, 600), 'the game\'s bots never fired');
   console.log(`${LOG} selftest: the bots fired ${shots()} shots (the AI shot ${counts.shots} times, ${counts.fired} fired), scores ${JSON.stringify(current()?.scores)}`);
   check(stopGame() && current()?.phase === 'over', 'the game did not stop');
   await later(DOWN + PROTECT);
-  check(!isDown(blue) && dist(blue.location, { x: 30.5, y: Y + 1, z: 2.5 }) > 5, `the tagged bot went back to base, though the game said stay (${JSON.stringify(blue.location)})`);
+  check(gameBots.every((b) => !b.isValid || b.nameTag === nameOf(b)), 'the game\'s bots did not get their names back after the game');
+  // Stay where you are is for players: a tagged bot always goes home to its spawn pad.
+  check(!isDown(blue) && dist(blue.location, { x: 30.5, y: Y + 1, z: 2.5 }) < 1.5, `the tagged bot did not go home to its spawn pad (${JSON.stringify(blue.location)})`);
 
   // Capture the flag: red takes blue's flag and brings it home.
+  console.log(`${LOG} selftest: capture the flag`);
   check(startGame({ mode: 'capture_the_flag', minutes: 3, bots: 0, teams: 2 }, { dimension: dim, location: { x: 16, y: Y, z: 12 } }), 'capture the flag did not start');
   check(!dim.getEntities({ type: BOT, tags: [GAME_BOT_TAG] }).length, 'the last game\'s bots are still there');
   await until(() => current()?.phase === 'running', 140);
@@ -190,6 +195,7 @@ async function selfTest() {
   stopGame();
 
   // King of the hill: red stands at the control point until it is red's.
+  console.log(`${LOG} selftest: king of the hill`);
   check(startGame({ mode: 'king_of_the_hill', minutes: 3, bots: 0, teams: 2 }, { dimension: dim, location: { x: 16, y: Y, z: 12 } }), 'king of the hill did not start');
   await until(() => current()?.phase === 'running', 140);
   red.teleport({ x: 17.5, y: Y, z: 21.5 });
@@ -201,6 +207,7 @@ async function selfTest() {
   stopGame();
 
   // A game ends at its score limit, and is cleared away a little later.
+  console.log(`${LOG} selftest: score limit`);
   red.teleport({ x: 10.5, y: Y, z: 40.5 });
   blue.teleport({ x: 14.5, y: Y, z: 40.5 });
   check(startGame({ mode: 'team_deathmatch', minutes: 3, scoreLimit: 1, bots: 0, teams: 2 }, { dimension: dim, location: { x: 16, y: Y, z: 12 } }), 'the last game did not start');

@@ -1,6 +1,6 @@
 {
   "name": "laser-tag",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Laser Tag: a Minecraft Bedrock add-on and Java mod with laser guns, team vests, a game console, four game modes, arena blocks, power-ups and laser bots",
   "private": true,
   "type": "module",

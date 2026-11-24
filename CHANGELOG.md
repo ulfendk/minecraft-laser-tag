@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.7.1] - 2026-11-24
+
+### Fixed
+- Bots' names are hidden during a game too, like players' names, and come back when it ends. A tagged bot still shows the TAGGED sign.
+- A tagged bot always goes back to its team's spawn pad. Stay where you are now applies only to players.
+
 ## [0.7.0] - 2026-11-23
 
 ### Added

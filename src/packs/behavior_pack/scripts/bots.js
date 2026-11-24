@@ -9,17 +9,20 @@ import { botSkill, botTeams } from './logic.js';
 import { current, isActive, isDown, isProtected, recordShot, teamLabel } from './game.js';
 import { padsOf } from './arena.js';
 import { fireRay, muzzle } from './guns.js';
-import { BOT, dist, GAME_BOT_TAG, isBot, isPlayer, norm, NS, sound, sub, teamOf } from './util.js';
+import { BOT, dist, GAME_BOT_TAG, isBot, isPlayer, norm, NS, sound, sub, teamOf, BOT_NAME } from './util.js';
 
 const SHOT = `${NS}:bot_shot`;
 /** How many shots the game's AI has had the bots fire (for the selftest). */
 export const counts = { shots: 0, fired: 0 };
 
-/** Put `bot` on `team`: its colour, its targets and its name. */
+/** Put `bot` on `team`: its colour, its targets and its name (kept apart from its name tag, which a game hides). */
 export function joinTeam(bot, team, name) {
   bot.setDynamicProperty(`${NS}:team`, team);
   bot.triggerEvent(`${NS}:join_${team}`);
-  if (name) bot.nameTag = name;
+  if (name) {
+    bot.setDynamicProperty(BOT_NAME, name);
+    bot.nameTag = name;
+  }
 }
 
 /** The nearest enemy `bot` can see, within its range. */

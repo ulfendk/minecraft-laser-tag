@@ -11,7 +11,7 @@ import { padsOf, pointCounts, resetArena, showFlag } from './arena.js';
 import { spawnGameBots, removeGameBots } from './bots.js';
 import { scopeText } from './guns.js';
 import {
-  announce, BOT, colour, coloured, DOWN_TAG, isBot, isPlayer, LOG, nameOf, NS, now, plainName, SIGN, sound, teamOf, TEAMS, title, tr,
+  announce, BOT, colour, coloured, DOWN_TAG, isBot, botName, isPlayer, LOG, nameOf, NS, now, plainName, SIGN, sound, teamOf, TEAMS, title, tr,
 } from './util.js';
 
 const SAVE = `${NS}:game`;
@@ -130,8 +130,9 @@ function comeBack(entity) {
   wakeUp(entity);
   // Bots held still (the selftest's targets) stay held.
   if (isBot(entity)) entity.triggerEvent(entity.hasTag(`${NS}_hold`) ? `${NS}:hold` : `${NS}:up`);
-  // Back to base, unless the game says to carry on from where you were tagged.
-  if (game?.afterTag !== 'stay') respawn(entity);
+  // Back to base, unless the game says to carry on from where you were tagged. Bots always go
+  // home to their spawn pad.
+  if (isBot(entity) || game?.afterTag !== 'stay') respawn(entity);
   protectUntil.set(entity.id, now() + RULES.tag.protect * 20);
   sound(entity, 'beacon.activate', 1.6);
 }
@@ -174,15 +175,26 @@ function hideSign(entity) {
 
 // ---------------------------------------------------------------- hidden names
 
-/** Players whose names are hidden: a name above your head gives away where you are. */
+/** Players and bots whose names are hidden: a name above your head gives away where you are. */
 const hidden = new Set();
 const hiding = () => !!game && game.phase !== 'over';
-/** What is on a name tag without a sign: a player's name, but nothing while a game is on. */
-const restName = (entity) => (isPlayer(entity) ? (hiding() ? '' : entity.name) : plainName(entity.nameTag ?? ''));
+/** What is on a name tag without a sign: a player's or bot's name, but nothing while a game is on. */
+const restName = (entity) => (hiding() ? '' : isPlayer(entity) ? entity.name : botName(entity));
 
-/** Hide every player's name while a game is on, and give them back after. */
+/** Every laser bot in the world. */
+function allBots() {
+  const out = [];
+  for (const dim of ['overworld', 'nether', 'the_end']) {
+    try {
+      out.push(...world.getDimension(dim).getEntities({ type: BOT }));
+    } catch {}
+  }
+  return out;
+}
+
+/** Hide every player's and bot's name while a game is on, and give them back after. */
 function hideNames() {
-  for (const p of world.getAllPlayers()) {
+  for (const p of [...world.getAllPlayers(), ...allBots()]) {
     if (hiding()) hidden.add(p.id);
     else if (!hidden.delete(p.id)) continue;
     if (!isDown(p)) hideSign(p);
@@ -266,6 +278,7 @@ export function startGame(settings, at, starter) {
   resetArena();
   removeGameBots(at.dimension);
   spawnGameBots(game, at, settings.bots ?? 0);
+  hideNames();
   // Everyone nearby in a vest goes to their team's pad; without one, where they stand is their base.
   for (const p of world.getAllPlayers()) {
     if (!teamOf(p) || p.dimension.id !== at.dimension.id || Math.hypot(p.location.x - at.location.x, p.location.z - at.location.z) > RULES.console.reach) continue;
